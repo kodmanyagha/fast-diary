@@ -1,0 +1,53 @@
+[package]
+name = "fast-diary"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+thiserror = "1.0"
+
+druid = { version = "0.8", features = ["im"] }
+
+druid-widget-nursery = { version = "0.1.0", features = [
+  "async",
+  "derive",
+  "druid-material-icons",
+  "druid-widget-nursery-derive",
+  "flume",
+  "futures",
+  "hot-reload",
+  "libloading",
+  "material-icons",
+  "notify",
+  "rand",
+  "notify5",
+  "tokio",
+] }
+
+env_logger = "0.11"
+log = "0.4"
+dotenvy = "0.15"
+im = "15.1.0"
+
+# theme loader
+notify = { version = "4.0.12", optional = true }
+
+# async
+tokio = { version = "1.0", features = [
+  "default",
+  "rt",
+  "time",
+  "macros",
+  "rt-multi-thread",
+] }
+futures = { version = "0.3", optional = true }
+flume = { version = "0.10", optional = true }
+
+# hot reload
+notify5 = { version = "5.0.0-pre.11", optional = true, package = "notify" }
+libloading = { version = "0.6.6", optional = true }
+rand = { version = "0.8.1", optional = true }
+tracing = { version = "0.1.22" }
+druid-material-icons = { version = "0.2.0", optional = true }
+chrono = "0.4.38"

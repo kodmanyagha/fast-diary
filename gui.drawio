@@ -1,0 +1,56 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.7.8 Chrome/128.0.6613.36 Electron/32.0.1 Safari/537.36" version="24.7.8" pages="2">
+  <diagram name="diary" id="hEN8e1ks8Mf2hsvSoMfM">
+    <mxGraphModel dx="1767" dy="1016" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="soT_rEGJZ9zCF_11M6qR-14" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="600" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="soT_rEGJZ9zCF_11M6qR-16" value="Burası yazı yazma alanı." style="rounded=0;whiteSpace=wrap;html=1;align=left;comic=0;jiggle=0.5;linecap=round;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="260" y="50" width="370" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="soT_rEGJZ9zCF_11M6qR-21" value="&lt;font style=&quot;font-size: 11px;&quot;&gt;26 Sep 2024&lt;/font&gt;&lt;div style=&quot;font-size: 11px;&quot;&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;Lorem ipsum dolor sit amet falan filan inter milan merhaba dünya...&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="120" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="soT_rEGJZ9zCF_11M6qR-22" value="&lt;font style=&quot;font-size: 11px;&quot;&gt;27 Sep 2024&lt;/font&gt;&lt;div style=&quot;font-size: 11px;&quot;&gt;Falan filan inter milan lorem ipsum dolor sit amet merhaba falan filan...&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="190" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="soT_rEGJZ9zCF_11M6qR-23" value="&lt;font style=&quot;font-size: 11px;&quot;&gt;25 Sep 2024&lt;/font&gt;&lt;div style=&quot;font-size: 11px;&quot;&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;Lorem ipsum dolor sit amet falan filan inter milan merhaba dünya...&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="50" width="200" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="wgh8k-zssPooqPKgEAJT" name="password">
+    <mxGraphModel dx="968" dy="556" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="-jqEDw0eCwc0FR3Dz3ze-1" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="600" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="-jqEDw0eCwc0FR3Dz3ze-10" value="******" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="240" y="140" width="210" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="-jqEDw0eCwc0FR3Dz3ze-11" value="Password" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="240" y="120" width="210" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="-jqEDw0eCwc0FR3Dz3ze-12" value="     Advanced options" style="swimlane;startSize=23;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="180" width="210" height="100" as="geometry">
+            <mxRectangle x="130" y="300" width="90" height="30" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="-jqEDw0eCwc0FR3Dz3ze-13" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;/custom/folder/here&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=middle;" vertex="1" parent="-jqEDw0eCwc0FR3Dz3ze-12">
+          <mxGeometry x="7.5" y="50" width="172.5" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ERcaaP8sPxyRe3I7K9rl-1" value="F" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=none;strokeWidth=1;fillColor=#0085FC;fontColor=#FFFFFF;whiteSpace=wrap;align=center;verticalAlign=middle;spacingLeft=0;fontStyle=0;fontSize=16;spacing=5;" vertex="1" parent="-jqEDw0eCwc0FR3Dz3ze-12">
+          <mxGeometry x="180" y="50" width="25" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ERcaaP8sPxyRe3I7K9rl-3" value="Folder" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="-jqEDw0eCwc0FR3Dz3ze-12">
+          <mxGeometry x="7.5" y="30" width="182.5" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
