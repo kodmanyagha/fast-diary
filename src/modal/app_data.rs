@@ -1,19 +1,34 @@
-use std::fmt::Display;
+use std::{fmt::Display, sync::Arc};
 
 use chrono::Utc;
 use druid::{Data, Lens};
-use im::HashMap;
+use im::OrdMap;
 
 use super::diary_datetime::DiaryDateTime;
+
+#[derive(Debug, Clone, Data, Lens)]
+pub struct DiaryListItem {
+    pub date: DiaryDateTime<Utc>,
+    pub title: String,
+}
+
+impl DiaryListItem {
+    pub fn new(date: DiaryDateTime<Utc>, title: String) -> Self {
+        Self { date, title }
+    }
+}
 
 #[derive(Clone, Data, Lens)]
 pub struct AppData {
     pub app_title: String,
     pub page: AppPages,
+    pub password: String,
     pub selected_path: Option<String>,
     pub encrypt_key: Option<String>,
-    pub diaries: Option<HashMap<DiaryDateTime<Utc>, String>>,
-    pub current_diary: Option<(DiaryDateTime<Utc>, String)>,
+
+    pub diaries: Arc<Vec<DiaryListItem>>,
+
+    pub current_diary: Option<DiaryListItem>,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -40,10 +55,11 @@ impl AppData {
         Self {
             app_title: "Fast Diary".to_string(),
             page: AppPages::Main,
+            password: "".to_string(),
             current_diary: None,
-            diaries: None,
             encrypt_key: None,
             selected_path: None,
+            diaries: Arc::new(vec![]),
         }
     }
 }

@@ -1,8 +1,22 @@
+use std::fmt::Display;
+
 use chrono::{DateTime, Offset, TimeZone};
 use druid::Data;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd)]
 pub struct DiaryDateTime<Tz: TimeZone>(DateTime<Tz>);
+
+impl<Tz: TimeZone + Ord> Ord for DiaryDateTime<Tz> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl<Tz: TimeZone> Display for DiaryDateTime<Tz> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.naive_utc().format("%Y-%m-%d %H:%M:%S"))
+    }
+}
 
 impl<Tz: TimeZone + 'static> Data for DiaryDateTime<Tz> {
     fn same(&self, other: &Self) -> bool {

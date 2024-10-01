@@ -1,4 +1,4 @@
--app-name = Druide
+app-name = Fast Diary
 
 hello-counter = La valeur actuelle est { $count }
 

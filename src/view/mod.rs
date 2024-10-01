@@ -1,2 +1,3 @@
-pub mod main_window;
-pub mod pages;
+pub mod page;
+pub mod widget;
+pub mod window;
