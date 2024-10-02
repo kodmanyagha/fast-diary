@@ -40,8 +40,7 @@ pub fn build_ui() -> impl Widget<AppData> {
                         .expand_width(),
                     FlexParams::new(2.0, CrossAxisAlignment::Center),
                 )
-                .fix_width(400f64)
-                .border(Color::rgb8(240, 230, 140), 1f64),
+                .fix_width(400f64),
         )
         .must_fill_main_axis(true)
         .cross_axis_alignment(CrossAxisAlignment::Center)
@@ -49,5 +48,4 @@ pub fn build_ui() -> impl Widget<AppData> {
         .expand_height()
         .expand_width()
         .padding(Insets::uniform(10.0))
-        .border(Color::rgb8(240, 230, 140), 1f64)
 }

@@ -1,16 +1,39 @@
 use druid::{
-    widget::{Flex, FlexParams, Label, List, Scroll, Split, TextBox},
-    Color, Insets, LensExt, LocalizedString, Widget, WidgetExt,
+    widget::{
+        BackgroundBrush, Container, CrossAxisAlignment, Flex, FlexParams, Label, List, Scroll,
+        Split, TextBox,
+    },
+    Color, Insets, LensExt, LinearGradient, LocalizedString, UnitPoint, Widget, WidgetExt,
 };
 
 use crate::modal::app_data::{AppData, DiaryListItem};
 
 fn make_list_item() -> impl Widget<DiaryListItem> {
-    Flex::row()
-        .with_child(TextBox::new().lens(DiaryListItem::title))
-        .with_child(Label::dynamic(|d: &DiaryListItem, event| d.title.to_owned()).padding(5.0))
-        .with_child(Label::dynamic(|d: &DiaryListItem, event| d.date.to_string()).padding(5.0))
-        .expand_width()
+    Container::new(
+        Flex::row()
+            .with_flex_child(
+                TextBox::new().lens(DiaryListItem::title).expand_width(),
+                FlexParams::new(33.3, Some(druid::widget::CrossAxisAlignment::Center)),
+            )
+            .with_default_spacer()
+            .with_flex_child(
+                Label::dynamic(|d: &DiaryListItem, event| d.title.to_owned()),
+                FlexParams::new(33.3, Some(druid::widget::CrossAxisAlignment::Center)),
+            )
+            .with_default_spacer()
+            .with_flex_child(
+                Label::dynamic(|d: &DiaryListItem, event| d.date.to_string()),
+                FlexParams::new(33.3, Some(druid::widget::CrossAxisAlignment::Center)),
+            )
+            .padding((5.0, 10.0))
+            .background(BackgroundBrush::Linear(LinearGradient::new(
+                UnitPoint::TOP,
+                UnitPoint::BOTTOM,
+                (Color::rgb8(128, 128, 128), Color::rgb8(105, 105, 105)),
+            )))
+            .rounded(10.0),
+    )
+    .padding((0.0, 5.0))
 }
 
 pub fn build_ui() -> impl Widget<AppData> {
@@ -25,9 +48,16 @@ pub fn build_ui() -> impl Widget<AppData> {
         .with_flex_child(
             Split::columns(
                 Flex::column()
-                    .with_child(label_1)
-                    .with_child(
-                        Scroll::new(List::new(make_list_item).lens(AppData::diaries)).vertical(),
+                    .with_flex_child(
+                        label_1,
+                        FlexParams::new(10.0, Some(druid::widget::CrossAxisAlignment::Start)),
+                    )
+                    .with_flex_child(
+                        Scroll::new(List::new(make_list_item).lens(AppData::diaries))
+                            .vertical()
+                            .expand_width()
+                            .expand_height(),
+                        FlexParams::new(90.0, Some(druid::widget::CrossAxisAlignment::Start)),
                     )
                     .expand_width()
                     .expand_height()
@@ -43,11 +73,9 @@ pub fn build_ui() -> impl Widget<AppData> {
             .solid_bar(true)
             .min_size(150f64, 400f64)
             .expand_width()
-            .expand_height()
-            .border(Color::rgb8(255, 69, 0), 1f64),
+            .expand_height(),
             FlexParams::new(100.0, Some(druid::widget::CrossAxisAlignment::Center)),
         )
         .expand_height()
         .expand_width()
-        .border(Color::rgb8(240, 230, 140), 0f64)
 }

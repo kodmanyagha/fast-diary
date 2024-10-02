@@ -35,8 +35,6 @@ impl<W: Widget<AppData>> Controller<AppData, W> for MainWindowController {
         data: &mut AppData,
         env: &Env,
     ) {
-        // log::info!("An event occured: {:?}", event);
-
         if let Event::WindowSize(size) = event {
             //log::info!("Window resize event: {:?}", size);
         } else if let Event::MouseMove(mouse_event) = event {
@@ -44,11 +42,12 @@ impl<W: Widget<AppData>> Controller<AppData, W> for MainWindowController {
         } else if let Event::Command(cmd) = event {
             if cmd.is(ADD_DIARY_ITEM) {
                 let cmd_data = cmd.get_unchecked(ADD_DIARY_ITEM);
-                log::info!("ADD_DIARY_ITEM: {:?}", cmd_data);
+                // log::info!("ADD_DIARY_ITEM: {:?}", cmd_data);
 
                 let mut diaries = data.diaries.as_ref().clone();
                 diaries.push(cmd_data.to_owned());
                 data.diaries = Arc::new(diaries);
+                ctx.request_update();
             }
         }
 
@@ -69,6 +68,5 @@ pub fn build_ui() -> impl Widget<AppData> {
     page_switcher
         .expand_width()
         .expand_height()
-        .border(Color::rgb8(255, 0, 0), 0f64)
         .controller(MainWindowController::new())
 }

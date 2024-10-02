@@ -53,15 +53,13 @@ async fn event_sink_handle(event_sink: ExtEventSink) {
 
     let mut counter = 0;
     loop {
-        log::info!(">>>> event_sink_handle loop counter: {counter}");
-
         let _ = event_sink.submit_command(
             ADD_DIARY_ITEM,
-            DiaryListItem::new(create_dummy_time(-2), "bar1".to_string()),
+            DiaryListItem::new(create_dummy_time(-2), format!("counter: {}", counter)),
             Target::Global,
         );
 
-        tokio::time::sleep(Duration::from_millis(3000)).await;
+        tokio::time::sleep(Duration::from_millis(3333)).await;
         counter += 1;
     }
 }
