@@ -59,7 +59,12 @@ async fn event_sink_handle(event_sink: ExtEventSink) {
             Target::Global,
         );
 
-        tokio::time::sleep(Duration::from_millis(3333)).await;
+        if counter % 50 == 0 {
+            tokio::time::sleep(Duration::from_millis(444)).await;
+        }
+        if counter >= 500 {
+            break;
+        }
         counter += 1;
     }
 }
@@ -72,32 +77,32 @@ fn create_dummy_time(seconds: i64) -> DiaryDateTime<Utc> {
 }
 
 fn fill_dummy_data(app_data: &mut AppData) {
-    if let Some(diaries) = Arc::get_mut(&mut app_data.diaries) {
-        diaries.push(DiaryListItem::new(
-            create_dummy_time(-1),
-            "foo1".to_string(),
-        ));
-        diaries.push(DiaryListItem::new(
-            create_dummy_time(-2),
-            "bar1".to_string(),
-        ));
-        diaries.push(DiaryListItem::new(
-            create_dummy_time(-3),
-            "baz1".to_string(),
-        ));
-        diaries.push(DiaryListItem::new(
-            create_dummy_time(-4),
-            "foo2".to_string(),
-        ));
-        diaries.push(DiaryListItem::new(
-            create_dummy_time(-5),
-            "bar2".to_string(),
-        ));
-        diaries.push(DiaryListItem::new(
-            create_dummy_time(-6),
-            "baz2".to_string(),
-        ));
-    }
+    let diaries = Arc::make_mut(&mut app_data.diaries);
+
+    diaries.push(DiaryListItem::new(
+        create_dummy_time(-1),
+        "foo1".to_string(),
+    ));
+    diaries.push(DiaryListItem::new(
+        create_dummy_time(-2),
+        "bar1".to_string(),
+    ));
+    diaries.push(DiaryListItem::new(
+        create_dummy_time(-3),
+        "baz1".to_string(),
+    ));
+    diaries.push(DiaryListItem::new(
+        create_dummy_time(-4),
+        "foo2".to_string(),
+    ));
+    diaries.push(DiaryListItem::new(
+        create_dummy_time(-5),
+        "bar2".to_string(),
+    ));
+    diaries.push(DiaryListItem::new(
+        create_dummy_time(-6),
+        "baz2".to_string(),
+    ));
 
     app_data.page = AppPages::Diary;
 }

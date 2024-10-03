@@ -8,22 +8,22 @@ use druid::{
 
 use crate::modal::app_data::{AppData, DiaryListItem};
 
-fn make_list_item() -> impl Widget<DiaryListItem> {
+fn diary_list_item_factory() -> impl Widget<DiaryListItem> {
     Container::new(
         Flex::row()
             .with_flex_child(
                 TextBox::new().lens(DiaryListItem::title).expand_width(),
-                FlexParams::new(33.3, Some(druid::widget::CrossAxisAlignment::Center)),
+                FlexParams::new(33.3, Some(CrossAxisAlignment::Center)),
             )
             .with_default_spacer()
             .with_flex_child(
                 Label::dynamic(|d: &DiaryListItem, event| d.title.to_owned()),
-                FlexParams::new(33.3, Some(druid::widget::CrossAxisAlignment::Center)),
+                FlexParams::new(33.3, Some(CrossAxisAlignment::Center)),
             )
             .with_default_spacer()
             .with_flex_child(
                 Label::dynamic(|d: &DiaryListItem, event| d.date.to_string()),
-                FlexParams::new(33.3, Some(druid::widget::CrossAxisAlignment::Center)),
+                FlexParams::new(33.3, Some(CrossAxisAlignment::Center)),
             )
             .padding((5.0, 10.0))
             .background(BackgroundBrush::Linear(LinearGradient::new(
@@ -37,10 +37,6 @@ fn make_list_item() -> impl Widget<DiaryListItem> {
 }
 
 pub fn build_ui() -> impl Widget<AppData> {
-    let label_1 = Label::new(LocalizedString::new("page-diary-title"))
-        .padding(5.0)
-        .center();
-
     let label_2 =
         Label::dynamic(|data: &AppData, _| format!("Current page: {}", data.page.to_string()));
 
@@ -49,15 +45,11 @@ pub fn build_ui() -> impl Widget<AppData> {
             Split::columns(
                 Flex::column()
                     .with_flex_child(
-                        label_1,
-                        FlexParams::new(10.0, Some(druid::widget::CrossAxisAlignment::Start)),
-                    )
-                    .with_flex_child(
-                        Scroll::new(List::new(make_list_item).lens(AppData::diaries))
+                        Scroll::new(List::new(diary_list_item_factory).lens(AppData::diaries))
                             .vertical()
                             .expand_width()
                             .expand_height(),
-                        FlexParams::new(90.0, Some(druid::widget::CrossAxisAlignment::Start)),
+                        FlexParams::new(90.0, Some(CrossAxisAlignment::Start)),
                     )
                     .expand_width()
                     .expand_height()
@@ -74,7 +66,7 @@ pub fn build_ui() -> impl Widget<AppData> {
             .min_size(150f64, 400f64)
             .expand_width()
             .expand_height(),
-            FlexParams::new(100.0, Some(druid::widget::CrossAxisAlignment::Center)),
+            FlexParams::new(100.0, Some(CrossAxisAlignment::Start)),
         )
         .expand_height()
         .expand_width()

@@ -44,10 +44,8 @@ impl<W: Widget<AppData>> Controller<AppData, W> for MainWindowController {
                 let cmd_data = cmd.get_unchecked(ADD_DIARY_ITEM);
                 // log::info!("ADD_DIARY_ITEM: {:?}", cmd_data);
 
-                let mut diaries = data.diaries.as_ref().clone();
+                let diaries = Arc::make_mut(&mut data.diaries);
                 diaries.push(cmd_data.to_owned());
-                data.diaries = Arc::new(diaries);
-                ctx.request_update();
             }
         }
 
