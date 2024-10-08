@@ -2,7 +2,6 @@ use std::{fmt::Display, sync::Arc};
 
 use chrono::Utc;
 use druid::{Data, Lens};
-use im::OrdMap;
 
 use super::diary_datetime::DiaryDateTime;
 
@@ -10,16 +9,66 @@ use super::diary_datetime::DiaryDateTime;
 pub struct DiaryListItem {
     pub date: DiaryDateTime<Utc>,
     pub title: String,
+    pub content: String,
 }
 
 impl DiaryListItem {
     pub fn new(date: DiaryDateTime<Utc>, title: String) -> Self {
-        Self { date, title }
+        Self {
+            date,
+            title,
+            content: "".into(),
+        }
+    }
+
+    pub fn new_fresh() -> Self {
+        DiaryListItem::new(Utc::now().into(), "".into())
+    }
+
+    pub fn new_content(date: DiaryDateTime<Utc>, title: String, content: String) -> Self {
+        Self {
+            date,
+            title,
+            content,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Data, Lens)]
+pub struct CurrentDiary {
+    pub is_selected: bool,
+    pub diary: DiaryListItem,
+}
+
+impl CurrentDiary {
+    pub fn new() -> Self {
+        Self {
+            is_selected: false,
+            diary: DiaryListItem::new_fresh(),
+        }
+    }
+}
+
+impl From<DiaryListItem> for CurrentDiary {
+    fn from(value: DiaryListItem) -> Self {
+        Self {
+            is_selected: true,
+            diary: value,
+        }
+    }
+}
+
+impl From<&DiaryListItem> for CurrentDiary {
+    fn from(value: &DiaryListItem) -> Self {
+        Self {
+            is_selected: true,
+            diary: value.clone(),
+        }
     }
 }
 
 #[derive(Clone, Data, Lens)]
-pub struct AppData {
+pub struct AppState {
     pub app_title: String,
     pub page: AppPages,
     pub password: String,
@@ -28,7 +77,8 @@ pub struct AppData {
 
     pub diaries: Arc<Vec<DiaryListItem>>,
 
-    pub current_diary: Option<DiaryListItem>,
+    pub current_diary: CurrentDiary,
+    pub txt_diary: String,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -50,16 +100,17 @@ impl Data for AppPages {
     }
 }
 
-impl AppData {
+impl AppState {
     pub fn new() -> Self {
         Self {
             app_title: "Fast Diary".to_string(),
             page: AppPages::Main,
             password: "".to_string(),
-            current_diary: None,
             encrypt_key: None,
             selected_path: None,
             diaries: Arc::new(vec![]),
+            current_diary: CurrentDiary::new(),
+            txt_diary: "".into(),
         }
     }
 }

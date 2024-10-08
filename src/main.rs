@@ -6,19 +6,16 @@ pub mod view;
 use std::{sync::Arc, time::Duration};
 
 use anyhow::anyhow;
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::{TimeDelta, Utc};
 use druid::{
-    AppLauncher, ExtEventSink, Point, Selector, Size, Target, WindowConfig, WindowDesc,
-    WindowLevel, WindowSizePolicy,
+    AppLauncher, ExtEventSink, Point, Size, Target, WindowConfig, WindowDesc, WindowLevel,
+    WindowSizePolicy,
 };
-use im::{HashMap, OrdMap};
 use modal::{
-    app_data::{AppData, AppPages, DiaryListItem},
+    app_state::{AppPages, AppState, DiaryListItem},
     diary_datetime::DiaryDateTime,
-    selector::ADD_DIARY_ITEM,
 };
-use tracing::{instrument::WithSubscriber, Dispatch};
-use view::window::main;
+use view::window::main::{self, main_window_controller::DIARY_ADD_ITEM};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -32,9 +29,9 @@ async fn main() -> anyhow::Result<()> {
         .with_min_size(Size::new(600f64, 400f64))
         .window_size(Size::new(800f64, 600f64));
 
-    let main_window = WindowDesc::new(main::build_ui()).with_config(window_config);
+    let main_window = WindowDesc::new(main::main_window::build_ui()).with_config(window_config);
 
-    let mut app_data = AppData::new();
+    let mut app_data = AppState::new();
     fill_dummy_data(&mut app_data);
 
     let app = AppLauncher::with_window(main_window);
@@ -47,22 +44,25 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn event_sink_handle(event_sink: ExtEventSink) {
-    event_sink.add_idle_callback(move |win_handle: &mut AppData| {
+    event_sink.add_idle_callback(move |win_handle: &mut AppState| {
         //
     });
 
     let mut counter = 0;
     loop {
         let _ = event_sink.submit_command(
-            ADD_DIARY_ITEM,
-            DiaryListItem::new(create_dummy_time(-2), format!("counter: {}", counter)),
+            DIARY_ADD_ITEM,
+            DiaryListItem::new(
+                create_dummy_time(-2),
+                format!("counter: {}", counter).into(),
+            ),
             Target::Global,
         );
 
-        if counter % 50 == 0 {
-            tokio::time::sleep(Duration::from_millis(444)).await;
+        if counter % 20 == 0 {
+            tokio::time::sleep(Duration::from_millis(1)).await;
         }
-        if counter >= 500 {
+        if counter >= 200 {
             break;
         }
         counter += 1;
@@ -76,33 +76,79 @@ fn create_dummy_time(seconds: i64) -> DiaryDateTime<Utc> {
         .into()
 }
 
-fn fill_dummy_data(app_data: &mut AppData) {
+fn fill_dummy_data(app_data: &mut AppState) {
     let diaries = Arc::make_mut(&mut app_data.diaries);
 
-    diaries.push(DiaryListItem::new(
-        create_dummy_time(-1),
-        "foo1".to_string(),
-    ));
-    diaries.push(DiaryListItem::new(
-        create_dummy_time(-2),
-        "bar1".to_string(),
-    ));
-    diaries.push(DiaryListItem::new(
-        create_dummy_time(-3),
-        "baz1".to_string(),
-    ));
-    diaries.push(DiaryListItem::new(
-        create_dummy_time(-4),
-        "foo2".to_string(),
-    ));
-    diaries.push(DiaryListItem::new(
-        create_dummy_time(-5),
-        "bar2".to_string(),
-    ));
-    diaries.push(DiaryListItem::new(
-        create_dummy_time(-6),
-        "baz2".to_string(),
-    ));
+    diaries.push(DiaryListItem::new(create_dummy_time(-1), "foo1".into()));
+    diaries.push(DiaryListItem::new(create_dummy_time(-2), "bar1".into()));
+    diaries.push(DiaryListItem::new(create_dummy_time(-3), "baz1".into()));
+    diaries.push(DiaryListItem::new(create_dummy_time(-4), "foo2".into()));
+    diaries.push(DiaryListItem::new(create_dummy_time(-5), "bar2".into()));
+    diaries.push(DiaryListItem::new(create_dummy_time(-6), "baz2".into()));
 
-    app_data.page = AppPages::Diary;
+    app_data.page = AppPages::Main;
+}
+
+#[cfg(test)]
+mod tests {
+    use std::rc::Rc;
+
+    use super::*;
+
+    struct Foo {
+        pub id: String,
+        pub id_static: &'static str,
+    }
+
+    impl Foo {
+        pub fn new(id: String) -> Self {
+            let id_static = id.clone().leak();
+            Self { id, id_static }
+        }
+    }
+
+    impl Drop for Foo {
+        fn drop(&mut self) {
+            println!("Drop fn invoked, id: {}", self.id_static);
+
+            unsafe {
+                let layout = std::alloc::Layout::new::<u8>();
+                std::alloc::dealloc(self.id_static.as_ptr() as *mut u8, layout);
+            }
+        }
+    }
+
+    #[test]
+    fn test_static_str() {
+        let string_1 = "string_1".to_string();
+        let string_2 = "string_2".to_string();
+
+        let static_str_1: &'static str = string_1.leak();
+        let static_str_2: &'static str = string_2.leak();
+
+        print_static_str(static_str_1);
+        print_static_str(static_str_2);
+
+        unsafe {
+            let layout = std::alloc::Layout::new::<u8>();
+
+            // let raw_ptr = static_str_1.get_unchecked_mut(0..static_str_1.len() - 1);
+            // let raw_ptr = static_str_1.as_mut_ptr();
+            std::alloc::dealloc(static_str_1.as_ptr() as *mut u8, layout);
+            // std::mem::forget(*raw_ptr);
+        }
+
+        //assert_eq!(static_str_1, "string_1");
+    }
+
+    fn print_static_str(static_str: &'static str) {
+        println!("static str: {}", static_str);
+    }
+
+    #[test]
+    fn test_foo() {
+        let foo1 = Foo::new("foo1".to_string());
+        assert_eq!("foo1", foo1.id_static);
+        drop(foo1);
+    }
 }
