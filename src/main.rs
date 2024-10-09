@@ -44,12 +44,16 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn event_sink_handle(event_sink: ExtEventSink) {
-    event_sink.add_idle_callback(move |win_handle: &mut AppState| {
+    event_sink.add_idle_callback(move |_data: &mut AppState| {
         //
     });
 
     let mut counter = 0;
     loop {
+        if counter >= 0 {
+            break;
+        }
+
         let _ = event_sink.submit_command(
             DIARY_ADD_ITEM,
             DiaryListItem::new(
@@ -61,9 +65,6 @@ async fn event_sink_handle(event_sink: ExtEventSink) {
 
         if counter % 20 == 0 {
             tokio::time::sleep(Duration::from_millis(1)).await;
-        }
-        if counter >= 200 {
-            break;
         }
         counter += 1;
     }
@@ -100,22 +101,36 @@ mod tests {
         pub id_static: &'static str,
     }
 
-    impl Foo {
-        pub fn new(id: String) -> Self {
-            let id_static = id.clone().leak();
-            Self { id, id_static }
-        }
-    }
-
     impl Drop for Foo {
         fn drop(&mut self) {
             println!("Drop fn invoked, id: {}", self.id_static);
 
             unsafe {
-                let layout = std::alloc::Layout::new::<u8>();
-                std::alloc::dealloc(self.id_static.as_ptr() as *mut u8, layout);
+                let reconstructed_string = String::from_raw_parts(
+                    self.id_static.as_ptr() as *mut u8,
+                    self.id_static.len(),
+                    self.id_static.len(),
+                );
+                drop(reconstructed_string);
             }
         }
+    }
+
+    impl Foo {
+        pub fn new(id: String) -> Self {
+            let mut id_shrink = id.clone();
+            id_shrink.shrink_to_fit();
+            let id_static = id_shrink.clone().leak();
+
+            Self { id, id_static }
+        }
+    }
+
+    #[test]
+    fn test_foo() {
+        let foo1 = Foo::new("foo1".to_string());
+        assert_eq!("foo1", foo1.id_static);
+        drop(foo1);
     }
 
     #[test]
@@ -137,18 +152,12 @@ mod tests {
             std::alloc::dealloc(static_str_1.as_ptr() as *mut u8, layout);
             // std::mem::forget(*raw_ptr);
         }
+        print_static_str(static_str_1);
 
         //assert_eq!(static_str_1, "string_1");
     }
 
     fn print_static_str(static_str: &'static str) {
         println!("static str: {}", static_str);
-    }
-
-    #[test]
-    fn test_foo() {
-        let foo1 = Foo::new("foo1".to_string());
-        assert_eq!("foo1", foo1.id_static);
-        drop(foo1);
     }
 }
