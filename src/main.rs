@@ -103,9 +103,9 @@ mod tests {
 
     impl Drop for Foo {
         fn drop(&mut self) {
-            println!("Drop fn invoked, id: {}", self.id_static);
-
             unsafe {
+                // Rebuild String object which encapsulates original pointer of static str.
+                // After that we can drop it.
                 let reconstructed_string = String::from_raw_parts(
                     self.id_static.as_ptr() as *mut u8,
                     self.id_static.len(),
@@ -113,11 +113,13 @@ mod tests {
                 );
                 drop(reconstructed_string);
             }
+            print_static_str(self.id_static);
         }
     }
 
     impl Foo {
         pub fn new(id: String) -> Self {
+            // We must fix inner vec size as correct string length.
             let mut id_shrink = id.clone();
             id_shrink.shrink_to_fit();
             let id_static = id_shrink.clone().leak();
@@ -152,6 +154,7 @@ mod tests {
             std::alloc::dealloc(static_str_1.as_ptr() as *mut u8, layout);
             // std::mem::forget(*raw_ptr);
         }
+        println!("Static str after dealloc");
         print_static_str(static_str_1);
 
         //assert_eq!(static_str_1, "string_1");
