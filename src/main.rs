@@ -183,20 +183,12 @@ mod tests {
         })();
         println!(">>> str_1: {str_1}");
 
+        // iflet is better than match syntax for Result and Option values.
         if let Ok(odd) = odd_result {
             println!(">>> Success: {odd}");
         } else if let Err(err) = odd_result {
             println!(">>> Error: {err}");
         }
-
-        // match odd_result {
-        //     Ok(odd) => {
-        //         println!(">>> Success: {odd}");
-        //     }
-        //     Err(err) => {
-        //         println!(">>> Error: {err}");
-        //     }
-        // }
     }
 
     #[test]
