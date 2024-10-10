@@ -67,11 +67,19 @@ impl From<&DiaryListItem> for CurrentDiary {
     }
 }
 
+#[derive(Clone, PartialEq, Data)]
+pub enum OpenFilePurpose {
+    DiaryPath,
+}
+
 #[derive(Clone, Data, Lens)]
 pub struct AppState {
     pub app_title: String,
     pub page: AppPages,
     pub password: String,
+
+    pub open_file_purpose: OpenFilePurpose,
+
     pub selected_path: Option<String>,
     pub encrypt_key: Option<String>,
 
@@ -107,6 +115,7 @@ impl AppState {
             page: AppPages::Main,
             password: "".to_string(),
             encrypt_key: None,
+            open_file_purpose: OpenFilePurpose::DiaryPath,
             selected_path: None,
             diaries: Arc::new(vec![]),
             current_diary: CurrentDiary::new(),

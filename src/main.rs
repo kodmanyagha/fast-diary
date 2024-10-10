@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 
 pub mod modal;
+pub mod utils;
 pub mod view;
 
 use std::{sync::Arc, time::Duration};
@@ -127,6 +128,9 @@ mod tests {
             Self { id, id_static }
         }
     }
+    fn print_static_str(static_str: &'static str) {
+        println!("static str: {}", static_str);
+    }
 
     #[test]
     fn test_foo() {
@@ -160,7 +164,58 @@ mod tests {
         //assert_eq!(static_str_1, "string_1");
     }
 
-    fn print_static_str(static_str: &'static str) {
-        println!("static str: {}", static_str);
+    #[test]
+    fn test_immediate_call_fn_1() {
+        let mut str_1 = "str_1".to_string();
+
+        let odd_result: anyhow::Result<String> = (|| {
+            let now_ts = Utc::now().timestamp();
+            str_1 = format!("ts: {}", now_ts.to_string());
+
+            let x = str_1.parse::<i64>().map_err(|_| anyhow!("Can't parsed"))?;
+            println!(">>> x: {x}");
+
+            if now_ts % 2 == 0 {
+                Err(anyhow!("Even number not accepted"))
+            } else {
+                Ok("Odd number is accepted".to_string())
+            }
+        })();
+        println!(">>> str_1: {str_1}");
+
+        if let Ok(odd) = odd_result {
+            println!(">>> Success: {odd}");
+        } else if let Err(err) = odd_result {
+            println!(">>> Error: {err}");
+        }
+
+        // match odd_result {
+        //     Ok(odd) => {
+        //         println!(">>> Success: {odd}");
+        //     }
+        //     Err(err) => {
+        //         println!(">>> Error: {err}");
+        //     }
+        // }
+    }
+
+    #[test]
+    fn test_immediate_call_fn_2() {
+        let mut str_1 = "str_1".to_string();
+
+        let odd_option: Option<String> = (|| {
+            str_1 = "str_1_1".to_string();
+            let parsed_int = str_1.parse::<i32>().ok()?;
+
+            println!("Parsed int: {parsed_int}");
+
+            Some(parsed_int.to_string())
+        })();
+
+        if let Some(odd) = odd_option {
+            println!(">>> Odd value: {odd}");
+        } else {
+            println!(">>> Odd is none returned.");
+        }
     }
 }

@@ -1,28 +1,24 @@
-use std::sync::Arc;
-use std::sync::RwLock;
-
-use druid::widget::Container;
+use chrono::DateTime;
+use chrono::Utc;
 use druid::widget::CrossAxisAlignment;
 use druid::widget::Flex;
 use druid::widget::FlexParams;
-use druid::widget::SizedBox;
-use druid::Color;
 use druid::Command;
 use druid::Target;
 use druid::{
-    widget::{Controller, Either, Label, TextBox, ViewSwitcher},
+    widget::{Controller, Label, TextBox, ViewSwitcher},
     Event, EventCtx, Widget, WidgetExt,
 };
 
-use crate::modal::app_state::{AppState, CurrentDiary, DiaryListItem};
+use crate::modal::app_state::AppState;
 use crate::view::window::main::main_window_controller::DIARY_SAVE_CURRENT;
 
 #[derive(Debug, Default)]
-struct TextBoxController {
-    //
+struct DiaryTextController {
+    last_save_time: DateTime<Utc>,
 }
 
-impl TextBoxController {
+impl DiaryTextController {
     pub fn new() -> Self {
         Self {
             ..Default::default()
@@ -30,7 +26,7 @@ impl TextBoxController {
     }
 }
 
-impl<W: Widget<String>> Controller<String, W> for TextBoxController {
+impl<W: Widget<String>> Controller<String, W> for DiaryTextController {
     fn event(
         &mut self,
         child: &mut W,
@@ -39,8 +35,6 @@ impl<W: Widget<String>> Controller<String, W> for TextBoxController {
         data: &mut String,
         env: &druid::Env,
     ) {
-        // log::info!(">>> TextBoxController event invoked");
-
         match event {
             Event::KeyUp(_key) => {
                 // log::info!(">>> TextBoxController Event::KeyUp {:?}", _key);
@@ -59,8 +53,7 @@ impl<W: Widget<String>> Controller<String, W> for TextBoxController {
 pub fn optional() -> impl Widget<AppState> {
     ViewSwitcher::new(
         |data: &AppState, env| {
-            log::info!(">>> view switcher picker executed");
-
+            // log::info!(">>> view switcher picker executed");
             data.current_diary.is_selected
         },
         |selector, data, env| {
@@ -86,7 +79,7 @@ pub fn optional() -> impl Widget<AppState> {
                                 .with_line_wrapping(true)
                                 .expand_width()
                                 .expand_height()
-                                .controller(TextBoxController::new())
+                                .controller(DiaryTextController::new())
                                 .lens(AppState::txt_diary),
                             FlexParams::new(90_f64, CrossAxisAlignment::Start),
                         )

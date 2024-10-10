@@ -7,7 +7,14 @@ edition = "2021"
 anyhow = "1"
 thiserror = "1.0"
 
-druid = { version = "0.8", features = ["im"] }
+druid = { version = "0.8", features = [
+  "im",
+  "image",
+  "png",
+  "jpeg",
+  "webp",
+  "usvg",
+] }
 
 druid-widget-nursery = { version = "0.1.0", features = [
   "async",
