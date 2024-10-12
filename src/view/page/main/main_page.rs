@@ -7,7 +7,10 @@ use druid::{
 };
 
 use crate::{
-    modal::app_state::{AppPages, AppState, OpenFilePurpose},
+    modal::{
+        app_state::{AppState, OpenFilePurpose},
+        state::app_pages::AppPages,
+    },
     utils::get_image::get_image,
 };
 
@@ -46,32 +49,33 @@ pub fn build_ui() -> impl Widget<AppState> {
                     FlexParams::new(100_f64, CrossAxisAlignment::Start),
                 )
                 .with_flex_child(
-                    Flex::row()
-                        .with_flex_child(
-                            TextBox::new().expand_width().lens(AppState::password),
-                            FlexParams::new(70_f64, CrossAxisAlignment::Start),
-                        )
-                        .with_flex_child(
-                            Button::new(LocalizedString::new("page-login-selectFolder"))
-                                .on_click(|ctx, data: &mut AppState, _| {
-                                    data.open_file_purpose = OpenFilePurpose::DiaryPath;
+                    Label::dynamic(|data: &AppState, env| {
+                        if let Some(selected_path) = data.selected_path.clone() {
+                            selected_path
+                        } else {
+                            "".to_string()
+                        }
+                    })
+                    .expand_width(),
+                    FlexParams::new(100_f64, CrossAxisAlignment::Start),
+                )
+                .with_flex_child(
+                    Button::new(LocalizedString::new("page-login-selectFolder"))
+                        .on_click(|ctx, data: &mut AppState, _| {
+                            data.open_file_purpose = OpenFilePurpose::DiaryPath;
 
-                                    let dialog_options = FileDialogOptions::new()
-                                        .select_directories()
-                                        .show_hidden()
-                                        .name_label("Source")
-                                        .title("Select a folder")
-                                        .button_text("Select");
+                            let dialog_options = FileDialogOptions::new()
+                                .select_directories()
+                                .show_hidden()
+                                .name_label("Source")
+                                .title("Select a folder")
+                                .button_text("Select");
 
-                                    ctx.submit_command(
-                                        druid::commands::SHOW_OPEN_PANEL
-                                            .with(dialog_options.clone()),
-                                    )
-                                })
-                                .padding(1_f64)
-                                .expand_width(),
-                            FlexParams::new(30_f64, CrossAxisAlignment::Start),
-                        ),
+                            ctx.submit_command(
+                                druid::commands::SHOW_OPEN_PANEL.with(dialog_options.clone()),
+                            )
+                        })
+                        .expand(),
                     FlexParams::new(100_f64, CrossAxisAlignment::Start),
                 )
                 .with_default_spacer()
@@ -85,12 +89,14 @@ pub fn build_ui() -> impl Widget<AppState> {
                 )
                 .with_default_spacer()
                 .with_flex_child(
-                    Button::new("Start")
+                    Button::new(LocalizedString::new("page-login-start"))
                         .on_click(|_, data: &mut AppState, _| data.page = AppPages::Diary)
+                        .disabled_if(|data, _| data.selected_path.is_none())
                         .expand(),
                     FlexParams::new(100_f64, CrossAxisAlignment::Start),
                 )
-                .fix_width(400f64),
+                .fix_width(400_f64)
+                .expand_height(),
             FlexParams::new(60_f64, CrossAxisAlignment::Center),
         )
         .must_fill_main_axis(true)

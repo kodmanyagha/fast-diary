@@ -1,9 +1,12 @@
 use druid::{
     widget::{CrossAxisAlignment, Flex, FlexParams, List, Scroll, Split},
-    Insets, Widget, WidgetExt,
+    Command, Insets, Target, Widget, WidgetExt,
 };
 
-use crate::{modal::app_state::AppState, view::widget::optional::optional};
+use crate::{
+    modal::app_state::AppState,
+    view::{widget::optional::optional, window::main::main_window_controller::DIARY_LOAD_FOLDER},
+};
 
 use super::widgets::diary_list_item::create_diary_list_item;
 
@@ -43,4 +46,7 @@ pub fn build_ui() -> impl Widget<AppState> {
         )
         .expand_height()
         .expand_width()
+        .on_added(|widget, ctx, data, env| {
+            ctx.submit_command(Command::new(DIARY_LOAD_FOLDER, (), Target::Global));
+        })
 }

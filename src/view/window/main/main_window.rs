@@ -1,7 +1,7 @@
 use druid::{widget::ViewSwitcher, Widget, WidgetExt};
 
 use crate::{
-    modal::app_state::{AppPages, AppState},
+    modal::{app_state::AppState, state::app_pages::AppPages},
     view::page::{diary::diary_page, main::main_page, settings::settings_page},
 };
 

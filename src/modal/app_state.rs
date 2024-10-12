@@ -1,71 +1,10 @@
-use std::{fmt::Display, sync::Arc};
+use std::cmp::Ordering;
+use std::sync::Arc;
 
-use chrono::Utc;
 use druid::{Data, Lens};
 
-use super::diary_datetime::DiaryDateTime;
-
-#[derive(Debug, Clone, Data, Lens)]
-pub struct DiaryListItem {
-    pub date: DiaryDateTime<Utc>,
-    pub title: String,
-    pub content: String,
-}
-
-impl DiaryListItem {
-    pub fn new(date: DiaryDateTime<Utc>, title: String) -> Self {
-        Self {
-            date,
-            title,
-            content: "".into(),
-        }
-    }
-
-    pub fn new_fresh() -> Self {
-        DiaryListItem::new(Utc::now().into(), "".into())
-    }
-
-    pub fn new_content(date: DiaryDateTime<Utc>, title: String, content: String) -> Self {
-        Self {
-            date,
-            title,
-            content,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Data, Lens)]
-pub struct CurrentDiary {
-    pub is_selected: bool,
-    pub diary: DiaryListItem,
-}
-
-impl CurrentDiary {
-    pub fn new() -> Self {
-        Self {
-            is_selected: false,
-            diary: DiaryListItem::new_fresh(),
-        }
-    }
-}
-
-impl From<DiaryListItem> for CurrentDiary {
-    fn from(value: DiaryListItem) -> Self {
-        Self {
-            is_selected: true,
-            diary: value,
-        }
-    }
-}
-
-impl From<&DiaryListItem> for CurrentDiary {
-    fn from(value: &DiaryListItem) -> Self {
-        Self {
-            is_selected: true,
-            diary: value.clone(),
-        }
-    }
-}
+use super::state::app_pages::AppPages;
+use super::state::{current_diary::CurrentDiary, diary_list_item::DiaryListItem};
 
 #[derive(Clone, PartialEq, Data)]
 pub enum OpenFilePurpose {
@@ -89,25 +28,6 @@ pub struct AppState {
     pub txt_diary: String,
 }
 
-#[derive(Clone, PartialEq, Debug)]
-pub enum AppPages {
-    Main,
-    Diary,
-    Settings,
-}
-
-impl Display for AppPages {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl Data for AppPages {
-    fn same(&self, other: &Self) -> bool {
-        self.eq(other)
-    }
-}
-
 impl AppState {
     pub fn new() -> Self {
         Self {
@@ -118,11 +38,8 @@ impl AppState {
             open_file_purpose: OpenFilePurpose::DiaryPath,
             selected_path: None,
             diaries: Arc::new(vec![]),
-            current_diary: CurrentDiary::new(),
+            current_diary: CurrentDiary::new().with_is_selected(false),
             txt_diary: "".into(),
         }
     }
 }
-
-#[derive(Clone, Data, Lens)]
-pub struct DiaryNote {}
