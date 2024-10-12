@@ -43,7 +43,7 @@ impl MainWindowController {
                     diaries_mut.push(
                         file_dir_entry
                             .try_into()
-                            .map_err(|err| anyhow!("{}: {} {}", file!(), line!(), err))?,
+                            .map_err(|err| anyhow!("{}:{} {}", file!(), line!(), err))?,
                     );
 
                     Ok(())

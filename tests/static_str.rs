@@ -1,3 +1,5 @@
+use std::sync::RwLock;
+
 use anyhow::anyhow;
 use chrono::Utc;
 
@@ -136,8 +138,23 @@ fn test_datetime_1() {
             naive_datetime.format("%Y-%m-%d %H:%M:%S").to_string()
         );
 
+        println!("{}:{} hello world", file!(), line!());
+
         Some(())
     })();
 
     println!("result:  {:?}", result);
+}
+
+#[test]
+fn test_rwlock_1() {
+    let rwlock_1 = RwLock::new(0);
+    let mut writer = rwlock_1.write().unwrap();
+    *writer += 1;
+
+    // You have to drop the writer, otherwise thread enters to endless loop.
+    drop(writer);
+
+    let reader = rwlock_1.read().unwrap();
+    println!(">>>>> Data: {}", *reader);
 }
