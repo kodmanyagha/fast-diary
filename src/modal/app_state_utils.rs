@@ -23,8 +23,11 @@ pub fn diaries_compare_rev(item1: &DiaryListItem, item2: &DiaryListItem) -> Orde
 }
 
 pub fn diary_summary(diary: &str) -> String {
-    let result = if diary.len() > 30 {
-        format!("{}...", diary[0..30].trim().to_string())
+    let result = if diary.chars().count() > 30 {
+        let x = diary.chars();
+        let x: String = x.skip(0).take(30).collect();
+
+        format!("{}...", x.trim().to_string())
     } else {
         diary.trim().to_string()
     };

@@ -5,7 +5,7 @@ use druid::{
 
 use crate::{
     modal::state::diary_list_item::DiaryListItem,
-    view::window::main::main_window_controller::DIARY_SET_CURRENT,
+    view::window::main::main_window_controller::{DIARY_SAVE_CURRENT, DIARY_SET_CURRENT},
 };
 
 pub fn create_diary_list_item() -> impl Widget<DiaryListItem> {
@@ -28,6 +28,8 @@ pub fn create_diary_list_item() -> impl Widget<DiaryListItem> {
             )))
             .rounded(10.0)
             .on_click(|ctx, data, _env| {
+                ctx.submit_command(DIARY_SAVE_CURRENT);
+
                 ctx.submit_command(Command::new(
                     DIARY_SET_CURRENT,
                     data.to_owned(),

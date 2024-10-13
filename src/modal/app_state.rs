@@ -19,7 +19,7 @@ pub struct AppState {
 
     pub open_file_purpose: OpenFilePurpose,
 
-    pub selected_path: Option<String>,
+    pub diary_base_path: Option<String>,
     pub encrypt_key: Option<String>,
 
     pub diaries: Arc<Vec<DiaryListItem>>,
@@ -36,10 +36,14 @@ impl AppState {
             password: "".to_string(),
             encrypt_key: None,
             open_file_purpose: OpenFilePurpose::DiaryPath,
-            selected_path: None,
+            diary_base_path: None,
             diaries: Arc::new(vec![]),
             current_diary: CurrentDiary::new().with_is_selected(false),
             txt_diary: "".into(),
         }
+    }
+
+    pub fn get_diary_base_path(&self) -> Option<String> {
+        self.diary_base_path.clone()
     }
 }

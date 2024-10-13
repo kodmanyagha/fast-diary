@@ -4,6 +4,7 @@ use druid::widget::CrossAxisAlignment;
 use druid::widget::Flex;
 use druid::widget::FlexParams;
 use druid::Command;
+use druid::Modifiers;
 use druid::Target;
 use druid::{
     widget::{Controller, Label, TextBox, ViewSwitcher},
@@ -36,9 +37,15 @@ impl<W: Widget<String>> Controller<String, W> for DiaryTextController {
         env: &druid::Env,
     ) {
         match event {
-            Event::KeyUp(_key) => {
-                // log::info!(">>> TextBoxController Event::KeyUp {:?}", _key);
-                ctx.submit_command(Command::new(DIARY_SAVE_CURRENT, (), Target::Global));
+            Event::KeyUp(key) => {
+                // log::info!(">>> TextBoxController Event::KeyUp {:?}", key);
+                /*
+                { state: Up, key: Character("s"), code: KeyS, location: Standard, mods: Modifiers(CONTROL | NUM_LOCK), repeat: false, is_composing: false }
+                */
+
+                if key.code.eq(&druid::Code::KeyS) && key.mods.contains(Modifiers::CONTROL) {
+                    ctx.submit_command(Command::new(DIARY_SAVE_CURRENT, (), Target::Global));
+                }
             }
             Event::Command(cmd) => {
                 log::info!(">>> TextBoxController Event::Command {:?}", cmd);

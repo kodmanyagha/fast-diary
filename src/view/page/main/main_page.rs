@@ -50,7 +50,7 @@ pub fn build_ui() -> impl Widget<AppState> {
                 )
                 .with_flex_child(
                     Label::dynamic(|data: &AppState, env| {
-                        if let Some(selected_path) = data.selected_path.clone() {
+                        if let Some(selected_path) = data.diary_base_path.clone() {
                             selected_path
                         } else {
                             "".to_string()
@@ -91,7 +91,7 @@ pub fn build_ui() -> impl Widget<AppState> {
                 .with_flex_child(
                     Button::new(LocalizedString::new("page-login-start"))
                         .on_click(|_, data: &mut AppState, _| data.page = AppPages::Diary)
-                        .disabled_if(|data, _| data.selected_path.is_none())
+                        .disabled_if(|data, _| data.diary_base_path.is_none())
                         .expand(),
                     FlexParams::new(100_f64, CrossAxisAlignment::Start),
                 )
