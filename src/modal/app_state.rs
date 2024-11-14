@@ -46,3 +46,9 @@ impl AppState {
         self.diary_base_path.clone()
     }
 }
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self::new()
+    }
+}

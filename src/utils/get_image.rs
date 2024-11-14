@@ -1,15 +1,11 @@
-use std::path::{absolute, PathBuf};
+use std::path;
 
 use druid::ImageBuf;
 
-pub fn get_image(path: &str) -> ImageBuf {
-    println!(
-        ">>> CWD: {} --- {}",
-        std::env::current_dir().unwrap().to_str().unwrap(),
-        absolute(path).unwrap().to_str().unwrap()
-    );
+use crate::config::app_config::get_app_config;
 
-    let img_buf = ImageBuf::from_file(absolute(path).unwrap());
+pub fn get_image(path: &str) -> ImageBuf {
+    let img_buf = ImageBuf::from_file(path::absolute(path).unwrap());
 
     match img_buf {
         Ok(img_data) => img_data,

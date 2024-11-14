@@ -3,13 +3,19 @@
 Diary app built with Druid library and Rust language.
 
 ```bash
-cargo run
+# Linux Bash
+RUST_LOG='debug' cargo watch -x run
+```
+
+```powershell
+# Windows powershell
+$env:RUST_LOG='debug'; cargo watch -x run; $env:RUST_LOG=$null
 ```
 
 ### Tasks
 
 - [x] Selecting unencrypted folder.
+- [x] Saving diaries to file.
 - [ ] Selecting encrypted folder.
-- [ ] Saving diaries to file.
 - [ ] Open password screen when window blur.
 - [ ] Markdown rendering.

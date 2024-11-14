@@ -3,35 +3,31 @@ use std::cmp::Ordering;
 use super::state::diary_list_item::DiaryListItem;
 
 pub fn diaries_compare(item1: &DiaryListItem, item2: &DiaryListItem) -> Ordering {
-    if item1.date.timestamp() > item2.date.timestamp() {
-        Ordering::Greater
-    } else if item1.date.timestamp() < item2.date.timestamp() {
-        Ordering::Less
-    } else {
-        Ordering::Equal
-    }
+    item1.date.timestamp().cmp(&item2.date.timestamp())
 }
 
 pub fn diaries_compare_rev(item1: &DiaryListItem, item2: &DiaryListItem) -> Ordering {
-    if item1.date.timestamp() > item2.date.timestamp() {
-        Ordering::Less
-    } else if item1.date.timestamp() < item2.date.timestamp() {
-        Ordering::Greater
-    } else {
-        Ordering::Equal
+    match item1.date.timestamp().cmp(&item2.date.timestamp()) {
+        Ordering::Less => Ordering::Greater,
+        Ordering::Equal => Ordering::Equal,
+        Ordering::Greater => Ordering::Less,
     }
 }
 
 pub fn diary_summary(diary: &str) -> String {
     let result = if diary.chars().count() > 30 {
         let x = diary.chars();
-        let x = x.skip(0).take(30);
-        let x: String = x.skip(0).take(30).collect();
+        let x = x.take(30);
+        let x: String = x.take(30).collect();
 
-        format!("{}...", x.trim().to_string())
+        format!("{}...", x.trim())
     } else {
         diary.trim().to_string()
     };
 
-    result.replace("\n", " ").trim().to_string()
+    result
+        .replace("\r", "")
+        .replace("\n", " ")
+        .trim()
+        .to_string()
 }

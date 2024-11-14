@@ -34,7 +34,6 @@ druid-widget-nursery = { version = "0.1.0", features = [
 
 env_logger = "0.11"
 log = "0.4"
-dotenvy = "0.15"
 im = "15.1.0"
 
 # theme loader
@@ -58,3 +57,5 @@ rand = { version = "0.8.1", optional = true }
 tracing = { version = "0.1.22" }
 druid-material-icons = { version = "0.2.0", optional = true }
 chrono = { version = "0.4.38", features = ["alloc"] }
+
+homedir = "0.3.4"

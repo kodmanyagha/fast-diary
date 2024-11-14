@@ -1,5 +1,6 @@
 #![windows_subsystem = "windows"]
 
+pub mod config;
 pub mod modal;
 pub mod utils;
 pub mod view;
@@ -8,6 +9,7 @@ use std::time::Duration;
 
 use anyhow::anyhow;
 use chrono::{TimeDelta, Utc};
+use config::app_config::get_app_config;
 use druid::{
     AppLauncher, ExtEventSink, Point, Size, Target, WindowConfig, WindowDesc, WindowLevel,
     WindowSizePolicy,
@@ -19,13 +21,17 @@ use view::window::main::{self, main_window_controller::DIARY_ADD_ITEM};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    dotenvy::dotenv().expect(".env file not found.");
     env_logger::init();
+
+    let app_config = get_app_config();
+    // TODO Log or print not working in here, fix this problem.
+    log::info!(">>>>>>>>>>>>> Current os: {}", std::env::consts::OS);
+    println!(">>>>>>>> TESTTT");
 
     let window_config = WindowConfig::default()
         .window_size_policy(WindowSizePolicy::User)
         .set_level(WindowLevel::AppWindow)
-        .set_position(Point::new(1750f64, 300f64))
+        .set_position(Point::new(150f64, 150f64))
         .with_min_size(Size::new(600f64, 400f64))
         .window_size(Size::new(800f64, 600f64));
 

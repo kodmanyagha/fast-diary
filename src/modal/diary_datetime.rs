@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fmt::Display};
+use std::fmt::Display;
 
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Offset, TimeZone, Utc};
 use druid::Data;
@@ -11,12 +11,6 @@ pub type DiaryDate = DiaryDateTime<Utc>;
 impl<Tz: TimeZone> DiaryDateTime<Tz> {
     pub fn timestamp(&self) -> i64 {
         self.0.timestamp()
-    }
-}
-
-impl<Tz: TimeZone + Ord> Ord for DiaryDateTime<Tz> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.cmp(&other.0)
     }
 }
 
