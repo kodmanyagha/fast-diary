@@ -38,11 +38,6 @@ impl<W: Widget<String>> Controller<String, W> for DiaryTextController {
     ) {
         match event {
             Event::KeyUp(key) => {
-                // log::info!(">>> TextBoxController Event::KeyUp {:?}", key);
-                /*
-                { state: Up, key: Character("s"), code: KeyS, location: Standard, mods: Modifiers(CONTROL | NUM_LOCK), repeat: false, is_composing: false }
-                */
-
                 if key.code.eq(&druid::Code::KeyS) && key.mods.contains(Modifiers::CONTROL) {
                     ctx.submit_command(Command::new(DIARY_SAVE_CURRENT, (), Target::Global));
                 }

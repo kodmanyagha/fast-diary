@@ -158,3 +158,26 @@ fn test_rwlock_1() {
     let reader = rwlock_1.read().unwrap();
     println!(">>>>> Data: {}", *reader);
 }
+
+#[test]
+fn test_str_chars() {
+    let my_str: String = "ğüışöç".to_string();
+    let my_str_ref = &my_str[0..];
+    let chars = my_str_ref.chars();
+    println!("chars: {:?}", chars);
+
+    let sub_chars = chars.skip(1).take(2);
+    println!("sub_chars: {:?}", sub_chars);
+
+    let substr: String = sub_chars.collect();
+    println!("substr: {}", substr);
+
+    println!("substring method: {}", substring(&my_str, 1, 3));
+}
+
+fn substring(source: &str, from: usize, to: usize) -> String {
+    if to <= from {
+        return String::new();
+    }
+    source.chars().skip(from).take(to - from).collect()
+}
