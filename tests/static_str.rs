@@ -76,7 +76,7 @@ fn test_immediate_call_fn_1() {
 
     let odd_result: anyhow::Result<String> = (|| {
         let now_ts = Utc::now().timestamp();
-        str_1 = format!("ts: {}", now_ts.to_string());
+        str_1 = format!("ts: {}", now_ts);
 
         let x = str_1.parse::<i64>().map_err(|_| anyhow!("Can't parsed"))?;
         println!(">>> x: {x}");
@@ -124,19 +124,13 @@ fn test_datetime_1() {
         let naive_datetime =
             chrono::NaiveDateTime::parse_from_str(date_str, "%Y-%m-%d %H:%M:%S").ok()?;
 
-        println!(
-            ">>> date 1: {}",
-            naive_datetime.format("%Y-%m-%d %H:%M:%S").to_string()
-        );
+        println!(">>> date 1: {}", naive_datetime.format("%Y-%m-%d %H:%M:%S"));
 
         let date_str = "20-04-12 22:10:57";
         let naive_datetime =
             chrono::NaiveDateTime::parse_from_str(date_str, "%y-%m-%d %H:%M:%S").ok()?;
 
-        println!(
-            ">>> date 2: {}",
-            naive_datetime.format("%Y-%m-%d %H:%M:%S").to_string()
-        );
+        println!(">>> date 2: {}", naive_datetime.format("%Y-%m-%d %H:%M:%S"));
 
         println!("{}:{} hello world", file!(), line!());
 

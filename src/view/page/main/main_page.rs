@@ -1,9 +1,9 @@
 use druid::{
     widget::{
-        Button, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, LabelText,
-        MainAxisAlignment, TextBox,
+        Button, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, MainAxisAlignment,
+        TextBox,
     },
-    Color, FileDialogOptions, Insets, LocalizedString, Widget, WidgetExt,
+    FileDialogOptions, LocalizedString, Widget, WidgetExt,
 };
 
 use crate::{

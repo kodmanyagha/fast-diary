@@ -2,8 +2,6 @@ use std::path;
 
 use druid::ImageBuf;
 
-use crate::config::app_config::get_app_config;
-
 pub fn get_image(path: &str) -> ImageBuf {
     let img_buf = ImageBuf::from_file(path::absolute(path).unwrap());
 

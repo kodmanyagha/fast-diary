@@ -1,6 +1,6 @@
 use std::fs::{self, DirEntry};
 
-use chrono::{NaiveDate, NaiveDateTime, Utc};
+use chrono::{NaiveDate, Utc};
 use druid::{Data, Lens};
 
 use crate::modal::{app_state_utils::diary_summary, diary_datetime::DiaryDate};
@@ -69,7 +69,7 @@ impl DiaryListItem {
             match parsed_str {
                 Ok(parsed_str) => {
                     // log::info!(">>> Correct format: {}", format);
-                    return Some(parsed_str.try_into().ok()?);
+                    return parsed_str.try_into().ok();
                 }
                 Err(_err) => {
                     // log::warn!(
@@ -83,6 +83,12 @@ impl DiaryListItem {
         }
 
         None
+    }
+}
+
+impl Default for DiaryListItem {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -9,7 +9,7 @@ pub fn build_ui() -> impl Widget<AppState> {
     let label_1 = Label::new(LocalizedString::new("page-settings-title"))
         .padding(5.0)
         .center();
-    let label_2 = Label::dynamic(|data: &AppState, _| format!("{}", data.page.to_string()));
+    let label_2 = Label::dynamic(|data: &AppState, _| data.page.to_string());
 
     Flex::column()
         .with_child(label_1)

@@ -5,20 +5,41 @@ use druid::{
 
 use crate::{
     modal::app_state::AppState,
-    view::{widget::optional::optional, window::main::main_window_controller::DIARY_LOAD_FOLDER},
+    view::{
+        page::diary::widgets::{
+            btn_create_widget::build_ui::build_btn_create,
+            build_diary_list_item::build_diary_list_item,
+        },
+        widget::optional::optional,
+        window::main::main_window_controller::DIARY_LOAD_FOLDER,
+    },
 };
-
-use super::widgets::diary_list_item::create_diary_list_item;
 
 pub fn build_ui() -> impl Widget<AppState> {
     log::info!(">>> diary::build_ui() invoked");
+
+    let btn_create_1 = build_btn_create();
+    let btn_create_2 = build_btn_create();
 
     Flex::column()
         .with_flex_child(
             Split::columns(
                 Flex::column()
                     .with_flex_child(
-                        Scroll::new(List::new(create_diary_list_item).lens(AppState::diaries))
+                        Flex::row()
+                            .with_flex_child(
+                                btn_create_1,
+                                FlexParams::new(50.0, Some(CrossAxisAlignment::Center)),
+                            )
+                            .with_flex_child(
+                                btn_create_2,
+                                FlexParams::new(50.0, Some(CrossAxisAlignment::Center)),
+                            )
+                            .expand_width(),
+                        FlexParams::new(10.0, Some(CrossAxisAlignment::Center)),
+                    )
+                    .with_flex_child(
+                        Scroll::new(List::new(build_diary_list_item).lens(AppState::diaries))
                             .vertical()
                             .expand_width()
                             .expand_height(),

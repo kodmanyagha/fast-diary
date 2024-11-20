@@ -61,7 +61,7 @@ pub fn optional() -> impl Widget<AppState> {
         |selector, data, env| {
             log::info!(">>> view switcher builder executed, {:?}", selector);
 
-            if selector.clone() {
+            if *selector {
                 Box::new(
                     Flex::column()
                         .with_flex_child(

@@ -22,6 +22,12 @@ impl CurrentDiary {
     }
 }
 
+impl Default for CurrentDiary {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl From<DiaryListItem> for CurrentDiary {
     fn from(value: DiaryListItem) -> Self {
         Self {

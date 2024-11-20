@@ -1,23 +1,29 @@
 use std::{
-    fs::{self, OpenOptions},
+    fs::{self, File, OpenOptions},
     io::Write,
     path::Path,
     sync::Arc,
 };
 
 use anyhow::anyhow;
+use chrono::Local;
 use druid::{widget::Controller, Command, Env, Event, EventCtx, Selector, Widget};
 
-use crate::modal::{
-    app_state::{AppState, OpenFilePurpose},
-    app_state_utils::{diaries_compare_rev, diary_summary},
-    state::diary_list_item::DiaryListItem,
+use crate::{
+    give,
+    modal::{
+        app_state::{AppState, OpenFilePurpose},
+        app_state_utils::{diaries_compare_rev, diary_summary},
+        state::diary_list_item::DiaryListItem,
+    },
+    utils::consts::DEFAULT_DIARY_NAME,
 };
 
 pub const DIARY_ADD_ITEM: Selector<DiaryListItem> = Selector::new("diary.add_item");
 pub const DIARY_SET_CURRENT: Selector<DiaryListItem> = Selector::new("diary.set_current");
 pub const DIARY_SAVE_CURRENT: Selector<()> = Selector::new("diary.save_current");
 pub const DIARY_LOAD_FOLDER: Selector<()> = Selector::new("diary.load_folder");
+pub const CREATE_NEW_DIARY: Selector<()> = Selector::new("diary.create");
 
 #[derive(Debug, Default)]
 pub struct MainWindowController {
@@ -31,30 +37,48 @@ impl MainWindowController {
         }
     }
 
-    pub fn load_folder(&mut self, ctx: &mut EventCtx, app_state: &mut AppState) {
-        let _: Option<()> = (|| {
-            let dir_content = fs::read_dir(app_state.diary_base_path.clone()?).ok()?;
-            let diaries_mut = Arc::make_mut(&mut app_state.diaries);
-            diaries_mut.clear();
+    pub fn handle_diary_create(
+        &self,
+        ctx: &mut EventCtx,
+        app_state: &mut AppState,
+    ) -> anyhow::Result<()> {
+        let current_local = Local::now();
+        let diary_file_name = format!("{}.md", current_local.format(DEFAULT_DIARY_NAME));
 
-            dir_content.for_each(|item| {
-                let _: anyhow::Result<()> = (|| {
-                    let file_dir_entry = item.map_err(|_| anyhow!("Can't read item."))?;
+        log::info!(">> Diary name: {diary_file_name}");
+        let found_diary = app_state.diaries.iter().find(|item| {
+            item.file_name
+                .eq(format!("{}.md", diary_file_name).as_str())
+        });
 
-                    diaries_mut.push(
-                        file_dir_entry
-                            .try_into()
-                            .map_err(|err| anyhow!("{}:{} {}", file!(), line!(), err))?,
-                    );
+        if found_diary.is_some() {
+            return Err(anyhow::anyhow!("Same diary already exist."));
+        }
+        let diary_base_path = app_state
+            .diary_base_path
+            .clone()
+            .ok_or(anyhow::anyhow!("Base path didn't selected."))?;
 
-                    Ok(())
-                })();
-            });
+        let _ = File::create_new(Path::new(&diary_base_path).join(&diary_file_name))?;
 
-            diaries_mut.sort_by(diaries_compare_rev);
+        Ok(())
+    }
 
-            Some(())
-        })();
+    pub fn load_folder(&mut self, ctx: &mut EventCtx, app_state: &mut AppState) -> Option<()> {
+        let dir_content = fs::read_dir(app_state.diary_base_path.clone()?).ok()?;
+        let diaries_mut = Arc::make_mut(&mut app_state.diaries);
+        diaries_mut.clear();
+
+        dir_content.for_each(|item| {
+            let file_dir_entry = give!(item);
+            let diary_list_item = give!(DiaryListItem::try_from(file_dir_entry));
+
+            diaries_mut.push(diary_list_item);
+        });
+
+        diaries_mut.sort_by(diaries_compare_rev);
+
+        Some(())
     }
 
     pub fn handle_diary_set_current(
@@ -158,7 +182,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
             } else if cmd.is(DIARY_SAVE_CURRENT) {
                 let result = self.handle_diary_save_current(cmd, ctx, event, app_state);
 
-                if let Ok(_) = result {
+                if result.is_ok() {
                     log::info!("Success on DIARY_SAVE_CURRENT");
                 } else if let Err(err) = result {
                     log::error!("Error on DIARY_SAVE_CURRENT: {}", err);
@@ -176,6 +200,14 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
                     }
                 }
             } else if cmd.is(DIARY_LOAD_FOLDER) {
+                self.load_folder(ctx, app_state);
+            } else if cmd.is(CREATE_NEW_DIARY) {
+                let create_result = self.handle_diary_create(ctx, app_state);
+
+                if let Err(err) = create_result {
+                    log::error!("File create error: {err}");
+                }
+
                 self.load_folder(ctx, app_state);
             }
         }

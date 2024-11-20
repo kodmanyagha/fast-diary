@@ -1,6 +1,6 @@
 #[derive(Default)]
 pub struct AppConfig {
-    pub window_positionn: (usize, usize),
+    pub window_position: (usize, usize),
     pub window_size: (usize, usize),
 }
 
@@ -13,8 +13,10 @@ impl AppConfig {
 }
 
 pub fn get_app_config() -> AppConfig {
-    let config = AppConfig::new();
-    // buraya dön
+    let mut config = AppConfig::new();
+
+    // TODO Read config from user's settings folder.
+    config.window_position = (150, 150);
 
     config
 }

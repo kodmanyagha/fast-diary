@@ -8,7 +8,7 @@ use crate::{
     view::window::main::main_window_controller::{DIARY_SAVE_CURRENT, DIARY_SET_CURRENT},
 };
 
-pub fn create_diary_list_item() -> impl Widget<DiaryListItem> {
+pub fn build_diary_list_item() -> impl Widget<DiaryListItem> {
     Container::new(
         Flex::row()
             .with_flex_child(
