@@ -4,30 +4,35 @@ use std::{
     path::PathBuf,
 };
 
+use anyhow::anyhow;
+
 pub static MAX_DIARY_SUMMARY_LENGTH: usize = 30;
 
 pub fn diary_summary(diary_path: PathBuf) -> anyhow::Result<String> {
-    let mut f = BufReader::new(File::open(diary_path)?);
+    let mut file_reader = BufReader::new(File::open(diary_path)?);
 
+    let mut summary_buf = Vec::<u8>::new();
     let mut utf8_buf = Vec::<u8>::new();
+    let mut whitespace_received = false;
+    while file_reader.read(&mut utf8_buf)? != 0 {
+        let character = String::from_utf8(utf8_buf.clone());
 
-    while f.read(&mut utf8_buf) != 0 {
-        //
+        let Ok(character) = character else { continue };
+        let Some(character) = character.chars().nth(0) else {
+            continue;
+        };
+
+        if whitespace_received {
+            continue;
+        } else {
+            summary_buf.extend_from_slice(character.to_string().as_bytes());
+
+            whitespace_received = character.is_whitespace();
+        }
     }
 
-    let result = if diary.chars().count() > 30 {
-        let x = diary.chars();
-        let x = x.take(30);
-        let x: String = x.take(30).collect();
-
-        format!("{}...", x.trim())
-    } else {
-        diary.trim().to_string()
-    };
-
-    result
-        .replace("\r", "")
-        .replace("\n", " ")
+    Ok(String::from_utf8(summary_buf)
+        .map_err(|_| anyhow!("asd"))?
         .trim()
-        .to_string()
+        .to_string())
 }

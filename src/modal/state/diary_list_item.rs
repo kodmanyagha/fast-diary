@@ -1,12 +1,9 @@
-use std::fs::{self, DirEntry};
+use std::fs::DirEntry;
 
 use chrono::{NaiveDate, Utc};
 use druid::{Data, Lens};
 
-use crate::{
-    give,
-    modal::{app_state_utils::diary_summary, diary_datetime::DiaryDate},
-};
+use crate::{giveo, giver, modal::diary_datetime::DiaryDate, utils::diary::diary_summary};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct DiaryListItem {
@@ -100,7 +97,7 @@ impl TryFrom<DirEntry> for DiaryListItem {
 
     fn try_from(value: DirEntry) -> Result<Self, Self::Error> {
         let mut diary_list_item = DiaryListItem::new();
-        let filename = give!(value.file_name().to_str()).to_string();
+        let filename = giveo!(value.file_name().to_str(), "File error".to_string()).to_string();
 
         diary_list_item.set_file_name(filename);
 
@@ -113,7 +110,7 @@ impl TryFrom<DirEntry> for DiaryListItem {
             DiaryListItem::parse_date(filename.into()).ok_or("Filename format is wrong.")?,
         );
 
-        diary_list_item.set_summary(diary_summary(value.path()));
+        diary_list_item.set_summary(diary_summary(value.path()).map_err(|e| format!("{e}"))?);
 
         Ok(diary_list_item)
     }

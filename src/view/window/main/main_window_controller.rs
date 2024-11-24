@@ -10,13 +10,13 @@ use chrono::Local;
 use druid::{widget::Controller, Command, Env, Event, EventCtx, Selector, Widget};
 
 use crate::{
-    give,
+    giver,
     modal::{
         app_state::{AppState, OpenFilePurpose},
-        app_state_utils::{diaries_compare_rev, diary_summary},
+        app_state_utils::diaries_compare_rev,
         state::diary_list_item::DiaryListItem,
     },
-    utils::consts::DEFAULT_DIARY_NAME,
+    utils::{consts::DEFAULT_DIARY_NAME, diary::diary_summary},
 };
 
 pub const DIARY_ADD_ITEM: Selector<DiaryListItem> = Selector::new("diary.add_item");
@@ -70,8 +70,8 @@ impl MainWindowController {
         diaries_mut.clear();
 
         dir_content.for_each(|item| {
-            let file_dir_entry = give!(item);
-            let diary_list_item = give!(DiaryListItem::try_from(file_dir_entry));
+            let file_dir_entry = giver!(item);
+            let diary_list_item = giver!(DiaryListItem::try_from(file_dir_entry));
 
             diaries_mut.push(diary_list_item);
         });
@@ -122,26 +122,27 @@ impl MainWindowController {
             return Err(anyhow!("Diary not selected."));
         }
 
+        let selected_path = app_state
+            .get_diary_base_path()
+            .ok_or(anyhow!("Diary path did not selected."))?;
+
         let diaries = Arc::make_mut(&mut app_state.diaries);
 
         let found_diary = diaries
             .iter_mut()
             .find(|item| item.date.eq(&app_state.current_diary.diary.date));
 
+        let current_file = Path::new(&selected_path).join(&app_state.current_diary.diary.file_name);
+
         if let Some(found_diary) = found_diary {
-            found_diary.summary = diary_summary(&app_state.txt_diary.clone());
+            found_diary.summary = diary_summary(current_file.clone())?;
         }
 
-        let selected_path = app_state
-            .get_diary_base_path()
-            .ok_or(anyhow!("Diary path did not selected."))?;
-
-        let path = Path::new(&selected_path).join(&app_state.current_diary.diary.file_name);
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
             .truncate(true)
-            .open(path)?;
+            .open(current_file)?;
 
         file.write_all(app_state.txt_diary.as_bytes())?;
         file.sync_all()?;
