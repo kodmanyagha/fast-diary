@@ -37,9 +37,9 @@ impl TryFrom<NaiveDateTime> for DiaryDateTime<Utc> {
     type Error = String;
 
     fn try_from(value: NaiveDateTime) -> Result<Self, Self::Error> {
-        let x = Utc.from_local_datetime(&value);
+        let datetime = Utc.from_local_datetime(&value);
 
-        match x {
+        match datetime {
             chrono::offset::LocalResult::Single(result) => Ok(DiaryDateTime(result)),
             _ => Err("Wrong NaiveDateTime".to_string()),
         }
@@ -50,9 +50,9 @@ impl TryFrom<NaiveDate> for DiaryDateTime<Utc> {
     type Error = String;
 
     fn try_from(value: NaiveDate) -> Result<Self, Self::Error> {
-        let x = Utc.from_local_datetime(&value.into());
+        let datetime = Utc.from_local_datetime(&value.into());
 
-        match x {
+        match datetime {
             chrono::offset::LocalResult::Single(result) => Ok(DiaryDateTime(result)),
             _ => Err("Wrong NaiveDateTime".to_string()),
         }

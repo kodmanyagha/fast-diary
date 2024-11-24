@@ -59,8 +59,7 @@ pub fn optional() -> impl Widget<AppState> {
             data.current_diary.is_selected
         },
         |selector, data, env| {
-            log::info!(">>> view switcher builder executed, {:?}", selector);
-
+            // log::info!(">>> view switcher builder executed, {:?}", selector);
             if *selector {
                 Box::new(
                     Flex::column()

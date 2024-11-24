@@ -16,8 +16,7 @@ use crate::{
 };
 
 pub fn build_ui() -> impl Widget<AppState> {
-    log::info!(">>> diary::build_ui() invoked");
-
+    // log::info!(">>> diary::build_ui() invoked");
     let btn_create_1 = build_btn_create();
     let btn_create_2 = build_btn_create();
 

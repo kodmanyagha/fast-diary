@@ -34,6 +34,7 @@ impl Foo {
         Self { id, id_static }
     }
 }
+
 fn print_static_str(static_str: &'static str) {
     println!("static str: {}", static_str);
 }

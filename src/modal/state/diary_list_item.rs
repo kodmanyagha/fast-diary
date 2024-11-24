@@ -3,7 +3,10 @@ use std::fs::{self, DirEntry};
 use chrono::{NaiveDate, Utc};
 use druid::{Data, Lens};
 
-use crate::modal::{app_state_utils::diary_summary, diary_datetime::DiaryDate};
+use crate::{
+    give,
+    modal::{app_state_utils::diary_summary, diary_datetime::DiaryDate},
+};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct DiaryListItem {
@@ -96,30 +99,22 @@ impl TryFrom<DirEntry> for DiaryListItem {
     type Error = String;
 
     fn try_from(value: DirEntry) -> Result<Self, Self::Error> {
-        let mut item = DiaryListItem::new();
-        item.set_file_name(
-            value
-                .file_name()
-                .to_str()
-                .ok_or("Filename can't readed".to_string())?
-                .to_string(),
-        );
+        let mut diary_list_item = DiaryListItem::new();
+        let filename = give!(value.file_name().to_str()).to_string();
 
-        let filename = item.file_name.clone();
+        diary_list_item.set_file_name(filename);
+
         let filename = filename
             .split(".")
             .next()
             .ok_or("Filename doesn't have any extension")?;
 
-        item.set_date(
+        diary_list_item.set_date(
             DiaryListItem::parse_date(filename.into()).ok_or("Filename format is wrong.")?,
         );
 
-        let original_content = fs::read_to_string(value.path())
-            .map_err(|err| format!("Error occured when reading file content: {:?}", err))?;
+        diary_list_item.set_summary(diary_summary(value.path()));
 
-        item.set_summary(diary_summary(&original_content));
-
-        Ok(item)
+        Ok(diary_list_item)
     }
 }
