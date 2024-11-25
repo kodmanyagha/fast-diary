@@ -1,6 +1,6 @@
 use std::fs::DirEntry;
 
-use chrono::{NaiveDate, Utc};
+use chrono::{NaiveDate, NaiveDateTime, Utc};
 use druid::{Data, Lens};
 
 use crate::{giveo, giver, modal::diary_datetime::DiaryDate, utils::diary::diary_summary};
@@ -50,6 +50,7 @@ impl DiaryListItem {
 
     fn parse_date(date_str: String) -> Option<DiaryDate> {
         let formats = vec![
+            "%y%m%d%H%M%S",
             "%Y%m%d%H%M%S",
             "%Y%m%d",
             "%y%m%d",
@@ -63,13 +64,12 @@ impl DiaryListItem {
         ];
 
         for format in formats {
-            let parsed_str = NaiveDate::parse_from_str(&date_str, format);
-            //let parsed_str = NaiveDateTime::parse_from_str(&date_str, format);
+            let parsed_date = NaiveDateTime::parse_from_str(&date_str, format);
 
-            match parsed_str {
-                Ok(parsed_str) => {
+            match parsed_date {
+                Ok(parsed_date) => {
                     // log::info!(">>> Correct format: {}", format);
-                    return parsed_str.try_into().ok();
+                    return parsed_date.try_into().ok();
                 }
                 Err(_err) => {
                     // log::warn!(
@@ -99,7 +99,7 @@ impl TryFrom<DirEntry> for DiaryListItem {
         let mut diary_list_item = DiaryListItem::new();
         let filename = giveo!(value.file_name().to_str(), "File error".to_string()).to_string();
 
-        diary_list_item.set_file_name(filename);
+        diary_list_item.set_file_name(filename.clone());
 
         let filename = filename
             .split(".")

@@ -18,7 +18,7 @@ pub fn diary_summary(diary_path: PathBuf) -> anyhow::Result<String> {
         let character = String::from_utf8(utf8_buf.clone());
 
         let Ok(character) = character else { continue };
-        let Some(character) = character.chars().nth(0) else {
+        let Some(character) = character.chars().next() else {
             continue;
         };
 

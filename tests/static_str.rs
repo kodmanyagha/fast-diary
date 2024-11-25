@@ -1,7 +1,7 @@
 use std::sync::RwLock;
 
 use anyhow::anyhow;
-use chrono::Utc;
+use chrono::{NaiveDate, NaiveDateTime, Utc};
 
 struct Foo {
     pub id: String,
@@ -168,6 +168,16 @@ fn test_str_chars() {
     println!("substr: {}", substr);
 
     println!("substring method: {}", substring(&my_str, 1, 3));
+}
+
+#[test]
+fn test_str_to_date() {
+    let example_date = "241125202851";
+    let parsed_date = NaiveDateTime::parse_from_str(example_date, "%y%m%d%H%M%S");
+    assert_eq!(parsed_date.is_ok(), true);
+
+    let parsed_date = NaiveDate::parse_from_str(example_date, "%y%m%d%H%M%S");
+    assert_eq!(parsed_date.is_ok(), true);
 }
 
 fn substring(source: &str, from: usize, to: usize) -> String {

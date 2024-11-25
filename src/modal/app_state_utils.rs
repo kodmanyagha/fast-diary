@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, path::PathBuf};
+use std::cmp::Ordering;
 
 use super::state::diary_list_item::DiaryListItem;
 

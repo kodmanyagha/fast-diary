@@ -42,18 +42,18 @@ impl MainWindowController {
         ctx: &mut EventCtx,
         app_state: &mut AppState,
     ) -> anyhow::Result<()> {
-        let current_local = Local::now();
-        let diary_file_name = format!("{}.md", current_local.format(DEFAULT_DIARY_NAME));
-
+        let diary_file_name = format!("{}.md", Local::now().format(DEFAULT_DIARY_NAME));
         log::info!(">> Diary name: {diary_file_name}");
-        let found_diary = app_state.diaries.iter().find(|item| {
+
+        let file_exist = app_state.diaries.iter().find(|item| {
             item.file_name
                 .eq(format!("{}.md", diary_file_name).as_str())
         });
 
-        if found_diary.is_some() {
+        if file_exist.is_some() {
             return Err(anyhow::anyhow!("Same diary already exist."));
         }
+
         let diary_base_path = app_state
             .diary_base_path
             .clone()
@@ -69,8 +69,12 @@ impl MainWindowController {
         let diaries_mut = Arc::make_mut(&mut app_state.diaries);
         diaries_mut.clear();
 
+        log::info!(">> Load folder: {:?}", dir_content);
+
         dir_content.for_each(|item| {
             let file_dir_entry = giver!(item);
+            log::info!(">> file_dir_entry: {:?}", file_dir_entry);
+
             let diary_list_item = giver!(DiaryListItem::try_from(file_dir_entry));
 
             diaries_mut.push(diary_list_item);
@@ -167,6 +171,8 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
         } else if let Event::MouseMove(_mouse_event) = event {
             // log::info!("Mouse event: {:?}", _mouse_event.window_pos);
         } else if let Event::Command(cmd) = event {
+            // TODO Improve this logic, there are lots of if-else blocks. Optimize this.
+
             if cmd.is(DIARY_ADD_ITEM) {
                 let cmd_data = cmd.get_unchecked(DIARY_ADD_ITEM);
 
@@ -181,13 +187,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
 
                 pass_event_to_child = false;
             } else if cmd.is(DIARY_SAVE_CURRENT) {
-                let result = self.handle_diary_save_current(cmd, ctx, event, app_state);
-
-                if result.is_ok() {
-                    log::info!("Success on DIARY_SAVE_CURRENT");
-                } else if let Err(err) = result {
-                    log::error!("Error on DIARY_SAVE_CURRENT: {}", err);
-                }
+                let _ = self.handle_diary_save_current(cmd, ctx, event, app_state);
 
                 pass_event_to_child = false;
             } else if cmd.is(druid::commands::OPEN_FILE) {
