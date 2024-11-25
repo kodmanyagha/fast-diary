@@ -1,9 +1,9 @@
 use std::fs::DirEntry;
 
-use chrono::{NaiveDate, NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, Utc};
 use druid::{Data, Lens};
 
-use crate::{giveo, giver, modal::diary_datetime::DiaryDate, utils::diary::diary_summary};
+use crate::{giveo, modal::diary_datetime::DiaryDate, utils::diary::diary_summary};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct DiaryListItem {

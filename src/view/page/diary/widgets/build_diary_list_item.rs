@@ -1,5 +1,5 @@
 use druid::{
-    widget::{BackgroundBrush, Container, CrossAxisAlignment, Flex, FlexParams, Label, TextBox},
+    widget::{BackgroundBrush, Container, CrossAxisAlignment, Flex, FlexParams, Label},
     Color, Command, LinearGradient, Target, UnitPoint, Widget, WidgetExt,
 };
 

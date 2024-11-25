@@ -174,10 +174,10 @@ fn test_str_chars() {
 fn test_str_to_date() {
     let example_date = "241125202851";
     let parsed_date = NaiveDateTime::parse_from_str(example_date, "%y%m%d%H%M%S");
-    assert_eq!(parsed_date.is_ok(), true);
+    assert!(parsed_date.is_ok());
 
     let parsed_date = NaiveDate::parse_from_str(example_date, "%y%m%d%H%M%S");
-    assert_eq!(parsed_date.is_ok(), true);
+    assert!(parsed_date.is_ok());
 }
 
 fn substring(source: &str, from: usize, to: usize) -> String {
