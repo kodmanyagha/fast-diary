@@ -1,6 +1,6 @@
 use std::fs::DirEntry;
 
-use chrono::{NaiveDateTime, Utc};
+use chrono::{NaiveDate, NaiveDateTime, Utc};
 use druid::{Data, Lens};
 
 use crate::{giveo, modal::diary_datetime::DiaryDate, utils::diary::diary_summary};
@@ -55,6 +55,8 @@ impl DiaryListItem {
             "%Y%m%d",
             "%y%m%d",
             "%y%M%d",
+            "%y%M%D",
+            "%Y%M%D",
             "%Y%m%d%H%M",
             "%y%m%d%H%M",
             "%Y_%m_%d_%H_%M_%S",
@@ -64,22 +66,22 @@ impl DiaryListItem {
         ];
 
         for format in formats {
-            let parsed_date = NaiveDateTime::parse_from_str(&date_str, format);
+            let parsed_date = NaiveDate::parse_from_str(&date_str, format);
 
             match parsed_date {
                 Ok(parsed_date) => {
-                    // log::info!(">>> Correct format: {}", format);
+                    log::info!(">>> Correct format: {}", format);
                     return parsed_date.try_into().ok();
                 }
                 Err(_err) => {
-                    // log::warn!(
-                    //     ">>> Wrong format. Date: {}, format: {}, err: {:?}",
-                    //     date_str,
-                    //     format,
-                    //     _err
-                    // );
+                    log::warn!(
+                        ">>> Wrong format. Date: {}, format: {}, err: {:?}",
+                        date_str,
+                        format,
+                        _err
+                    );
                 }
-            }
+            };
         }
 
         None

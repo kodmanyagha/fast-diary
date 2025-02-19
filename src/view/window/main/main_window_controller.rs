@@ -12,7 +12,7 @@ use druid::{widget::Controller, Command, Env, Event, EventCtx, Selector, Widget}
 use crate::{
     giver,
     modal::{
-        app_state::{AppState, OpenFilePurpose},
+        app_state::{app_state_derived_lenses::diaries, AppState, OpenFilePurpose},
         app_state_utils::diaries_compare_rev,
         state::diary_list_item::DiaryListItem,
     },
@@ -26,15 +26,11 @@ pub const DIARY_LOAD_FOLDER: Selector<()> = Selector::new("diary.load_folder");
 pub const CREATE_NEW_DIARY: Selector<()> = Selector::new("diary.create");
 
 #[derive(Debug, Default)]
-pub struct MainWindowController {
-    //
-}
+pub struct MainWindowController;
 
 impl MainWindowController {
     pub fn new() -> Self {
-        Self {
-            ..MainWindowController::default()
-        }
+        Self
     }
 
     pub fn handle_diary_create(
@@ -66,9 +62,8 @@ impl MainWindowController {
 
     pub fn load_folder(&mut self, ctx: &mut EventCtx, app_state: &mut AppState) -> Option<()> {
         let dir_content = fs::read_dir(app_state.diary_base_path.clone()?).ok()?;
-        let diaries_mut = Arc::make_mut(&mut app_state.diaries);
-        diaries_mut.clear();
 
+        app_state.diaries.clear();
         log::info!(">> Load folder: {:?}", dir_content);
 
         dir_content.for_each(|item| {
@@ -77,10 +72,9 @@ impl MainWindowController {
 
             let diary_list_item = giver!(DiaryListItem::try_from(file_dir_entry));
 
-            diaries_mut.push(diary_list_item);
+            app_state.diaries.push_back(diary_list_item);
         });
-
-        diaries_mut.sort_by(diaries_compare_rev);
+        app_state.diaries.sort_by(diaries_compare_rev);
 
         Some(())
     }
@@ -96,7 +90,6 @@ impl MainWindowController {
 
         app_state.current_diary = cmd_data.into();
 
-        // FIXME Think about the fullpath separator, windows using "\", others using "/"
         let fullpath_str = format!(
             "{}/{}",
             app_state
@@ -130,9 +123,8 @@ impl MainWindowController {
             .get_diary_base_path()
             .ok_or(anyhow!("Diary path did not selected."))?;
 
-        let diaries = Arc::make_mut(&mut app_state.diaries);
-
-        let found_diary = diaries
+        let found_diary = app_state
+            .diaries
             .iter_mut()
             .find(|item| item.date.eq(&app_state.current_diary.diary.date));
 
@@ -175,9 +167,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
 
             if cmd.is(DIARY_ADD_ITEM) {
                 let cmd_data = cmd.get_unchecked(DIARY_ADD_ITEM);
-
-                let diaries = Arc::make_mut(&mut app_state.diaries);
-                diaries.push(cmd_data.to_owned());
+                app_state.diaries.push_back(cmd_data.to_owned());
             } else if cmd.is(DIARY_SET_CURRENT) {
                 let result = self.handle_diary_set_current(cmd, ctx, event, app_state);
 

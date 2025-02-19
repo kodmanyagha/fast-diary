@@ -26,7 +26,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app_config = get_app_config();
     // TODO Log or print not working in here, fix this problem.
-    log::error!(">>>>>>>>>>>>> Current os: {}", std::env::consts::OS);
+    log::info!(">>>>>>>>>>>>> Current os: {}", std::env::consts::OS);
 
     let window_config = WindowConfig::default()
         .window_size_policy(WindowSizePolicy::User)

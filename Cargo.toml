@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1"
-thiserror = "1.0"
+anyhow = "1.0.95"
+thiserror = "2.0.11"
 
 druid = { version = "0.8", features = [
   "im",
@@ -33,30 +33,31 @@ druid-widget-nursery = { version = "0.1.0", features = [
 ] }
 
 dotenvy = "0.15"
-env_logger = "0.11"
-log = "0.4"
+env_logger = "0.11.6"
+log = "0.4.25"
 im = "15.1.0"
 
 # theme loader
-notify = { version = "4.0.12", optional = true }
+notify = { version = "8.0.0", optional = true }
 
 # async
-tokio = { version = "1.0", features = [
+tokio = { version = "1.43.0", features = [
   "default",
   "rt",
   "time",
   "macros",
   "rt-multi-thread",
 ] }
-futures = { version = "0.3", optional = true }
-flume = { version = "0.10", optional = true }
+futures = { version = "0.3.31", optional = true }
+flume = { version = "0.11.1", optional = true }
 
 # hot reload
-notify5 = { version = "5.0.0-pre.11", optional = true, package = "notify" }
-libloading = { version = "0.6.6", optional = true }
-rand = { version = "0.8.1", optional = true }
-tracing = { version = "0.1.22" }
+notify5 = { version = "8.0.0", optional = true, package = "notify" }
+libloading = { version = "0.8.6", optional = true }
+rand = { version = "0.9.0", optional = true }
+tracing = { version = "0.1.41" }
 druid-material-icons = { version = "0.2.0", optional = true }
-chrono = { version = "0.4.38", features = ["alloc"] }
+chrono = { version = "0.4.39", features = ["alloc"] }
 
 homedir = "0.3.4"
+parking_lot = "0.12.3"

@@ -60,6 +60,7 @@ pub fn build_ui() -> impl Widget<AppState> {
             .bar_size(3f64)
             .solid_bar(true)
             .min_size(150f64, 400f64)
+            .fix_size(150f64, 400f64)
             .expand_width()
             .expand_height(),
             FlexParams::new(100.0, Some(CrossAxisAlignment::Start)),

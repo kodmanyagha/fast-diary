@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
 use druid::{Data, Lens};
+use im::Vector;
 
 use super::state::app_pages::AppPages;
 use super::state::{current_diary::CurrentDiary, diary_list_item::DiaryListItem};
@@ -21,7 +20,7 @@ pub struct AppState {
     pub diary_base_path: Option<String>,
     pub encrypt_key: Option<String>,
 
-    pub diaries: Arc<Vec<DiaryListItem>>,
+    pub diaries: Vector<DiaryListItem>,
 
     pub current_diary: CurrentDiary,
     pub txt_diary: String,
@@ -36,7 +35,7 @@ impl AppState {
             encrypt_key: None,
             open_file_purpose: OpenFilePurpose::DiaryPath,
             diary_base_path: None,
-            diaries: Arc::new(vec![]),
+            diaries: Vector::new(),
             current_diary: CurrentDiary::new().with_is_selected(false),
             txt_diary: "".into(),
         }
