@@ -66,22 +66,12 @@ impl DiaryListItem {
         ];
 
         for format in formats {
-            let parsed_date = NaiveDate::parse_from_str(&date_str, format);
-
-            match parsed_date {
-                Ok(parsed_date) => {
-                    log::info!(">>> Correct format: {}", format);
-                    return parsed_date.try_into().ok();
-                }
-                Err(_err) => {
-                    log::warn!(
-                        ">>> Wrong format. Date: {}, format: {}, err: {:?}",
-                        date_str,
-                        format,
-                        _err
-                    );
-                }
-            };
+            if let Ok(parse_result) = NaiveDateTime::parse_from_str(&date_str, format) {
+                return parse_result.try_into().ok();
+            }
+            if let Ok(parse_result) = NaiveDate::parse_from_str(&date_str, format) {
+                return parse_result.try_into().ok();
+            }
         }
 
         None

@@ -64,14 +64,10 @@ impl MainWindowController {
         let dir_content = fs::read_dir(app_state.diary_base_path.clone()?).ok()?;
 
         app_state.diaries.clear();
-        log::info!(">> Load folder: {:?}", dir_content);
 
         dir_content.for_each(|item| {
             let file_dir_entry = giver!(item);
-            log::info!(">> file_dir_entry: {:?}", file_dir_entry);
-
             let diary_list_item = giver!(DiaryListItem::try_from(file_dir_entry));
-
             app_state.diaries.push_back(diary_list_item);
         });
         app_state.diaries.sort_by(diaries_compare_rev);
