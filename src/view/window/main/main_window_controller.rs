@@ -170,7 +170,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
                 if let Err(err) = result {
                     log::error!("Error on DIARY_SET_CURRENT: {}", err);
                 }
-
                 pass_event_to_child = false;
             } else if cmd.is(DIARY_SAVE_CURRENT) {
                 let _ = self.handle_diary_save_current(cmd, ctx, event, app_state);

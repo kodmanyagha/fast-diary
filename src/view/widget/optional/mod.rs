@@ -54,12 +54,8 @@ impl<W: Widget<String>> Controller<String, W> for DiaryTextController {
 
 pub fn optional() -> impl Widget<AppState> {
     ViewSwitcher::new(
-        |data: &AppState, env| {
-            // log::info!(">>> view switcher picker executed");
-            data.current_diary.is_selected
-        },
+        |data: &AppState, env| data.current_diary.is_selected,
         |selector, data, env| {
-            // log::info!(">>> view switcher builder executed, {:?}", selector);
             if *selector {
                 Box::new(
                     Flex::column()
