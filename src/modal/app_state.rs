@@ -4,6 +4,46 @@ use im::Vector;
 use super::state::app_pages::AppPages;
 use super::state::{current_diary::CurrentDiary, diary_list_item::DiaryListItem};
 
+/// Pairs each diary with whether it is the currently selected one, so list
+/// item widgets can render a different background without needing access to
+/// the rest of `AppState`.
+pub struct DiariesWithSelectionLens;
+
+impl DiariesWithSelectionLens {
+    fn combine(app_state: &AppState) -> Vector<(DiaryListItem, bool)> {
+        let selected_file_name = app_state
+            .current_diary
+            .is_selected
+            .then(|| app_state.current_diary.diary.file_name.clone());
+
+        app_state
+            .diaries
+            .iter()
+            .map(|item| {
+                let is_selected = selected_file_name.as_deref() == Some(item.file_name.as_str());
+                (item.clone(), is_selected)
+            })
+            .collect()
+    }
+}
+
+impl Lens<AppState, Vector<(DiaryListItem, bool)>> for DiariesWithSelectionLens {
+    fn with<V, F: FnOnce(&Vector<(DiaryListItem, bool)>) -> V>(&self, data: &AppState, f: F) -> V {
+        f(&Self::combine(data))
+    }
+
+    fn with_mut<V, F: FnOnce(&mut Vector<(DiaryListItem, bool)>) -> V>(
+        &self,
+        data: &mut AppState,
+        f: F,
+    ) -> V {
+        let mut combined = Self::combine(data);
+        let result = f(&mut combined);
+        data.diaries = combined.into_iter().map(|(item, _)| item).collect();
+        result
+    }
+}
+
 #[derive(Clone, PartialEq, Data)]
 pub enum OpenFilePurpose {
     DiaryPath,

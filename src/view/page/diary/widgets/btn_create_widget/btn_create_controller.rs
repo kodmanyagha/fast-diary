@@ -25,7 +25,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for BtnCreateController {
     ) {
         if let Event::Command(cmd) = event {
             if cmd.is(BTN_CREATE_CLICK) {
-                log::info!(
+                tracing::info!(
                     "BTN_CREATE_CLICK cmd triggered, widget id: {:?}",
                     self.widget_id
                 );

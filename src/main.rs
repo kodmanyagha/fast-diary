@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 
 pub mod config;
+pub mod consts;
 pub mod modal;
 pub mod utils;
 pub mod view;
@@ -17,16 +18,21 @@ use druid::{
 use modal::{
     app_state::AppState, diary_datetime::DiaryDateTime, state::diary_list_item::DiaryListItem,
 };
-use view::window::main::{self, main_window_controller::DIARY_ADD_ITEM};
+use view::window::main::{self};
+
+use crate::{
+    consts::druid_selector,
+    utils::{event_sink::set_event_sink, logger::init_tracing_subscriber},
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let _ = dotenvy::dotenv().ok();
-    env_logger::try_init()?;
+    init_tracing_subscriber();
 
     let app_config = get_app_config();
     // TODO Log or print not working in here, fix this problem.
-    log::info!(">>>>>>>>>>>>> Current os: {}", std::env::consts::OS);
+    tracing::info!(">>>>>>>>>>>>> Current os: {}", std::env::consts::OS);
 
     let window_config = WindowConfig::default()
         .window_size_policy(WindowSizePolicy::User)
@@ -42,16 +48,16 @@ async fn main() -> anyhow::Result<()> {
     let main_window = WindowDesc::new(main::main_window::build_ui()).with_config(window_config);
     let app = AppLauncher::with_window(main_window);
 
+    set_event_sink(app.get_external_handle());
     tokio::spawn(event_sink_handle(app.get_external_handle()));
 
-    app.log_to_console()
-        .launch(app_data)
+    app.launch(app_data)
         .map_err(|err| anyhow!(err.to_string()))
 }
 
 async fn event_sink_handle(event_sink: ExtEventSink) {
-    event_sink.add_idle_callback(move |_data: &mut AppState| {
-        //
+    event_sink.add_idle_callback(move |app_state: &mut AppState| {
+        tracing::info!("Event sink cb: {}", app_state.app_title);
     });
 
     let mut counter = 0;
@@ -61,7 +67,7 @@ async fn event_sink_handle(event_sink: ExtEventSink) {
         }
 
         let _ = event_sink.submit_command(
-            DIARY_ADD_ITEM,
+            druid_selector::DIARY_ADD_ITEM,
             DiaryListItem::new()
                 .with_date(create_dummy_time(-2))
                 .with_summary(format!("counter: {}", counter)),

@@ -1,18 +1,35 @@
 use druid::{
-    widget::{BackgroundBrush, Container, CrossAxisAlignment, Flex, FlexParams, Label},
-    Color, Command, LinearGradient, Target, UnitPoint, Widget, WidgetExt,
+    widget::{Container, CrossAxisAlignment, Flex, FlexParams, Label, Painter},
+    Color, LinearGradient, RenderContext, Target, UnitPoint, Widget, WidgetExt,
 };
 
 use crate::{
-    modal::state::diary_list_item::DiaryListItem,
-    view::window::main::main_window_controller::{DIARY_SAVE_CURRENT, DIARY_SET_CURRENT},
+    consts::druid_selector, modal::state::diary_list_item::DiaryListItem,
+    utils::event_sink::get_event_sink,
 };
 
-pub fn build_diary_list_item() -> impl Widget<DiaryListItem> {
+const NORMAL_GRADIENT: (Color, Color) = (Color::rgb8(128, 128, 128), Color::rgb8(105, 105, 105));
+const SELECTED_GRADIENT: (Color, Color) = (Color::rgb8(70, 130, 180), Color::rgb8(51, 92, 130));
+
+pub fn build_diary_list_item() -> impl Widget<(DiaryListItem, bool)> {
+    let background = Painter::new(|ctx, (_, is_selected): &(DiaryListItem, bool), _env| {
+        let bounds = ctx.size().to_rect();
+        let gradient = if *is_selected {
+            SELECTED_GRADIENT
+        } else {
+            NORMAL_GRADIENT
+        };
+
+        ctx.fill(
+            bounds,
+            &LinearGradient::new(UnitPoint::TOP, UnitPoint::BOTTOM, gradient),
+        );
+    });
+
     Container::new(
         Flex::row()
             .with_flex_child(
-                Label::dynamic(|d: &DiaryListItem, event| d.date.to_string()[0..10].to_string()),
+                Label::dynamic(|d: &DiaryListItem, event| d.date.to_string()[0..19].to_string()),
                 FlexParams::new(67.0, Some(CrossAxisAlignment::Center)),
             )
             .with_default_spacer()
@@ -20,21 +37,29 @@ pub fn build_diary_list_item() -> impl Widget<DiaryListItem> {
                 Label::dynamic(|d: &DiaryListItem, event| d.summary.to_owned()).expand_width(),
                 FlexParams::new(33.0, Some(CrossAxisAlignment::Center)),
             )
+            .lens(druid::lens!((DiaryListItem, bool), 0))
             .padding((5.0, 10.0))
-            .background(BackgroundBrush::Linear(LinearGradient::new(
-                UnitPoint::TOP,
-                UnitPoint::BOTTOM,
-                (Color::rgb8(128, 128, 128), Color::rgb8(105, 105, 105)),
-            )))
+            .background(background)
             .rounded(10.0)
-            .on_click(|ctx, data, _env| {
-                ctx.submit_command(DIARY_SAVE_CURRENT);
+            .on_click(|_ctx, (data, _is_selected), _env| {
+                let data = data.to_owned();
+                let event_sink = get_event_sink();
 
-                ctx.submit_command(Command::new(
-                    DIARY_SET_CURRENT,
-                    data.to_owned(),
-                    Target::Global,
-                ));
+                tokio::spawn(async move {
+                    tracing::info!("Tokio spawn log here");
+
+                    let _ = event_sink.submit_command(
+                        druid_selector::DIARY_SAVE_CURRENT,
+                        (),
+                        Target::Global,
+                    );
+
+                    let _ = event_sink.submit_command(
+                        druid_selector::DIARY_SET_CURRENT,
+                        data,
+                        Target::Global,
+                    );
+                });
             }),
     )
     .padding((0.0, 5.0))

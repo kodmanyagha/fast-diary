@@ -8,7 +8,7 @@ pub fn get_image(path: &str) -> ImageBuf {
     match img_buf {
         Ok(img_data) => img_data,
         Err(err) => {
-            log::error!("An error occured when reading image: {:?}", err);
+            tracing::error!("An error occured when reading image: {:?}", err);
             ImageBuf::empty()
         }
     }

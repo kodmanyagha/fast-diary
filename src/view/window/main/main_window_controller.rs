@@ -2,28 +2,22 @@ use std::{
     fs::{self, File, OpenOptions},
     io::Write,
     path::Path,
-    sync::Arc,
 };
 
 use anyhow::anyhow;
 use chrono::Local;
-use druid::{widget::Controller, Command, Env, Event, EventCtx, Selector, Widget};
+use druid::{widget::Controller, Command, Env, Event, EventCtx, Widget};
 
 use crate::{
+    consts::druid_selector,
     giver,
     modal::{
-        app_state::{app_state_derived_lenses::diaries, AppState, OpenFilePurpose},
+        app_state::{AppState, OpenFilePurpose},
         app_state_utils::diaries_compare_rev,
         state::diary_list_item::DiaryListItem,
     },
     utils::{consts::DEFAULT_DIARY_NAME, diary::diary_summary},
 };
-
-pub const DIARY_ADD_ITEM: Selector<DiaryListItem> = Selector::new("diary.add_item");
-pub const DIARY_SET_CURRENT: Selector<DiaryListItem> = Selector::new("diary.set_current");
-pub const DIARY_SAVE_CURRENT: Selector<()> = Selector::new("diary.save_current");
-pub const DIARY_LOAD_FOLDER: Selector<()> = Selector::new("diary.load_folder");
-pub const CREATE_NEW_DIARY: Selector<()> = Selector::new("diary.create");
 
 #[derive(Debug, Default)]
 pub struct MainWindowController;
@@ -38,8 +32,24 @@ impl MainWindowController {
         ctx: &mut EventCtx,
         app_state: &mut AppState,
     ) -> anyhow::Result<()> {
+        let current_date = Local::now();
+        if let Some(first_diary) = app_state.diaries.get(0) {
+            let diff = current_date.timestamp() - first_diary.date.timestamp();
+            tracing::info!(
+                ?current_date,
+                ?first_diary,
+                ?diff,
+                ">>>>>>>>> first_diary datetime"
+            );
+
+            if diff < 60 {
+                return Err(anyhow::anyhow!("Wait a little"));
+            }
+            // return Ok(());
+        }
+
         let diary_file_name = format!("{}.md", Local::now().format(DEFAULT_DIARY_NAME));
-        log::info!(">> Diary name: {diary_file_name}");
+        tracing::info!("New diary file creating: {diary_file_name}");
 
         let file_exist = app_state.diaries.iter().find(|item| {
             item.file_name
@@ -82,7 +92,7 @@ impl MainWindowController {
         event: &Event,
         app_state: &mut AppState,
     ) -> anyhow::Result<()> {
-        let cmd_data = cmd.get_unchecked(DIARY_SET_CURRENT);
+        let cmd_data = cmd.get_unchecked(druid_selector::DIARY_SET_CURRENT);
 
         app_state.current_diary = cmd_data.into();
 
@@ -155,23 +165,23 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
         let mut pass_event_to_child = true;
 
         if let Event::WindowSize(_size) = event {
-            //log::info!("Window resize event: {:?}", _size);
+            //tracing::info!("Window resize event: {:?}", _size);
         } else if let Event::MouseMove(_mouse_event) = event {
-            // log::info!("Mouse event: {:?}", _mouse_event.window_pos);
+            // tracing::info!("Mouse event: {:?}", _mouse_event.window_pos);
         } else if let Event::Command(cmd) = event {
             // TODO Improve this logic, there are lots of if-else blocks. Optimize this.
 
-            if cmd.is(DIARY_ADD_ITEM) {
-                let cmd_data = cmd.get_unchecked(DIARY_ADD_ITEM);
+            if cmd.is(druid_selector::DIARY_ADD_ITEM) {
+                let cmd_data = cmd.get_unchecked(druid_selector::DIARY_ADD_ITEM);
                 app_state.diaries.push_back(cmd_data.to_owned());
-            } else if cmd.is(DIARY_SET_CURRENT) {
+            } else if cmd.is(druid_selector::DIARY_SET_CURRENT) {
                 let result = self.handle_diary_set_current(cmd, ctx, event, app_state);
 
                 if let Err(err) = result {
-                    log::error!("Error on DIARY_SET_CURRENT: {}", err);
+                    tracing::error!("Error on DIARY_SET_CURRENT: {}", err);
                 }
                 pass_event_to_child = false;
-            } else if cmd.is(DIARY_SAVE_CURRENT) {
+            } else if cmd.is(druid_selector::DIARY_SAVE_CURRENT) {
                 let _ = self.handle_diary_save_current(cmd, ctx, event, app_state);
 
                 pass_event_to_child = false;
@@ -185,13 +195,12 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
                         }
                     }
                 }
-            } else if cmd.is(DIARY_LOAD_FOLDER) {
+            } else if cmd.is(druid_selector::DIARY_LOAD_FOLDER) {
                 self.load_folder(ctx, app_state);
-            } else if cmd.is(CREATE_NEW_DIARY) {
+            } else if cmd.is(druid_selector::CREATE_NEW_DIARY) {
                 let create_result = self.handle_diary_create(ctx, app_state);
-
                 if let Err(err) = create_result {
-                    log::error!("File create error: {err}");
+                    tracing::error!("File create error: {err}");
                 }
 
                 self.load_folder(ctx, app_state);

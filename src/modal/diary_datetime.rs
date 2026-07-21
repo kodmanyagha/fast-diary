@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use chrono::{DateTime, NaiveDate, NaiveDateTime, Offset, TimeZone, Utc};
+use chrono::{DateTime, Local, NaiveDate, NaiveDateTime, Offset, TimeZone, Utc};
 use druid::Data;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd)]
@@ -37,10 +37,12 @@ impl TryFrom<NaiveDateTime> for DiaryDateTime<Utc> {
     type Error = String;
 
     fn try_from(value: NaiveDateTime) -> Result<Self, Self::Error> {
-        let datetime = Utc.from_local_datetime(&value);
+        let datetime = Local.from_local_datetime(&value);
 
         match datetime {
-            chrono::offset::LocalResult::Single(result) => Ok(DiaryDateTime(result)),
+            chrono::offset::LocalResult::Single(result) => {
+                Ok(DiaryDateTime(result.with_timezone(&Utc)))
+            }
             _ => Err("Wrong NaiveDateTime".to_string()),
         }
     }
@@ -50,10 +52,12 @@ impl TryFrom<NaiveDate> for DiaryDateTime<Utc> {
     type Error = String;
 
     fn try_from(value: NaiveDate) -> Result<Self, Self::Error> {
-        let datetime = Utc.from_local_datetime(&value.into());
+        let datetime = Local.from_local_datetime(&value.into());
 
         match datetime {
-            chrono::offset::LocalResult::Single(result) => Ok(DiaryDateTime(result)),
+            chrono::offset::LocalResult::Single(result) => {
+                Ok(DiaryDateTime(result.with_timezone(&Utc)))
+            }
             _ => Err("Wrong NaiveDateTime".to_string()),
         }
     }

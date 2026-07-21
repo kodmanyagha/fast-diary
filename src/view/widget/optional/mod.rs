@@ -11,8 +11,8 @@ use druid::{
     Event, EventCtx, Widget, WidgetExt,
 };
 
+use crate::consts::druid_selector;
 use crate::modal::app_state::AppState;
-use crate::view::window::main::main_window_controller::DIARY_SAVE_CURRENT;
 
 #[derive(Debug, Default)]
 struct DiaryTextController {
@@ -39,11 +39,15 @@ impl<W: Widget<String>> Controller<String, W> for DiaryTextController {
         match event {
             Event::KeyUp(key) => {
                 if key.code.eq(&druid::Code::KeyS) && key.mods.contains(Modifiers::CONTROL) {
-                    ctx.submit_command(Command::new(DIARY_SAVE_CURRENT, (), Target::Global));
+                    ctx.submit_command(Command::new(
+                        druid_selector::DIARY_SAVE_CURRENT,
+                        (),
+                        Target::Global,
+                    ));
                 }
             }
             Event::Command(cmd) => {
-                log::info!(">>> TextBoxController Event::Command {:?}", cmd);
+                tracing::info!(">>> TextBoxController Event::Command {:?}", cmd);
             }
             _ => {}
         }

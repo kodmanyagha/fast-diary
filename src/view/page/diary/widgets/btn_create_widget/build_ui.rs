@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use druid::{widget::Button, Widget, WidgetExt, WidgetId};
 
-use crate::{
-    modal::app_state::AppState, view::window::main::main_window_controller::CREATE_NEW_DIARY,
-};
+use crate::{consts::druid_selector, modal::app_state::AppState};
 
 pub fn build_btn_create() -> impl Widget<AppState> {
     let arc_widget_id = Arc::new(WidgetId::next());
@@ -19,7 +17,7 @@ pub fn build_btn_create() -> impl Widget<AppState> {
             //     *widget_id_on_click_clone,
             // ));
 
-            ctx.submit_command(CREATE_NEW_DIARY);
+            ctx.submit_command(druid_selector::CREATE_NEW_DIARY);
         })
         .with_id(*arc_widget_id)
         // .controller(BtnCreateController::new(*arc_widget_id))
