@@ -43,11 +43,11 @@ pub fn build_diary_list_item() -> impl Widget<(DiaryListItem, bool)> {
             .rounded(10.0)
             .on_click(|_ctx, (data, _is_selected), _env| {
                 let data = data.to_owned();
-                let event_sink = get_event_sink();
+                let Some(event_sink) = get_event_sink() else {
+                    return;
+                };
 
                 tokio::spawn(async move {
-                    tracing::info!("Tokio spawn log here");
-
                     let _ = event_sink.submit_command(
                         druid_selector::DIARY_SAVE_CURRENT,
                         (),

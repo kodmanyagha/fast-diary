@@ -10,6 +10,7 @@ page-login-welcomeSub1 = Please select a folder and enter your password if neede
 
 page-login-enterPassword = Enter Password
 page-login-selectFolder = Select Folder
+page-login-recentFolders = Recent Folders
 page-login-start = Start
 
 page-settings-title = Settings

@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "=1.0.103"
-thiserror = "=2.0.18"
+anyhow = "=1.0.104"
+thiserror = "=2.0.20"
 
 druid = { version = "=0.8.3", features = [
   "im",
@@ -33,19 +33,19 @@ druid-widget-nursery = { version = "=0.1.0", features = [
 ] }
 
 dotenvy = "=0.15"
-log = "=0.4.33"
+log = "=0.4.34"
 im = "=15.1.0"
 
 notify = { version = "=8.2.0", optional = true }
 
-tokio = { version = "=1.53.0", features = [
+tokio = { version = "=1.53.1", features = [
   "default",
   "rt",
   "time",
   "macros",
   "rt-multi-thread",
 ] }
-futures = { version = "=0.3.32", optional = true }
+futures = { version = "=0.3.34", optional = true }
 flume = { version = "=0.12.0", optional = true }
 
 notify5 = { version = "=8.2.0", optional = true, package = "notify" }
@@ -58,3 +58,6 @@ chrono = { version = "=0.4.45", features = ["alloc"] }
 
 homedir = "=0.3.6"
 parking_lot = "=0.12.5"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+dirs = "=6.0.0"

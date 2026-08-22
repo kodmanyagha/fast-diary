@@ -7,9 +7,12 @@ use crate::{
     consts::druid_selector,
     modal::app_state::{AppState, DiariesWithSelectionLens},
     view::{
-        page::diary::widgets::{
-            btn_create_widget::build_ui::build_btn_create,
-            build_diary_list_item::build_diary_list_item,
+        page::diary::{
+            diary_list_controller::DiaryListController,
+            widgets::{
+                btn_create_widget::build_ui::build_btn_create,
+                build_diary_list_item::build_diary_list_item,
+            },
         },
         widget::optional::optional,
     },
@@ -33,7 +36,8 @@ pub fn build_ui() -> impl Widget<AppState> {
             Scroll::new(List::new(build_diary_list_item).lens(DiariesWithSelectionLens))
                 .vertical()
                 .expand_width()
-                .expand_height(),
+                .expand_height()
+                .controller(DiaryListController::new()),
             FlexParams::new(90.0, Some(CrossAxisAlignment::Start)),
         )
         .expand_width()

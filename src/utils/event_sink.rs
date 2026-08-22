@@ -7,13 +7,16 @@ static EVENT_SINK: OnceLock<ExtEventSink> = OnceLock::new();
 /// Must be called once, before any widget tries to use [`get_event_sink`].
 pub fn set_event_sink(sink: ExtEventSink) {
     if EVENT_SINK.set(sink).is_err() {
-        panic!("event sink was already initialized");
+        tracing::error!("event sink was already initialized; ignoring redundant call");
     }
 }
 
-pub fn get_event_sink() -> ExtEventSink {
-    EVENT_SINK
-        .get()
-        .expect("event sink accessed before initialization")
-        .clone()
+pub fn get_event_sink() -> Option<ExtEventSink> {
+    let sink = EVENT_SINK.get();
+
+    if sink.is_none() {
+        tracing::error!("event sink accessed before initialization");
+    }
+
+    sink.cloned()
 }

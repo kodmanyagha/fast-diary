@@ -9,6 +9,7 @@ use chrono::Local;
 use druid::{widget::Controller, Command, Env, Event, EventCtx, Widget};
 
 use crate::{
+    config::settings::Settings,
     consts::druid_selector,
     giver,
     modal::{
@@ -68,6 +69,22 @@ impl MainWindowController {
         let _ = File::create_new(Path::new(&diary_base_path).join(&diary_file_name))?;
 
         Ok(())
+    }
+
+    /// Sets the diary base path, moves it to the front of the recent folders
+    /// list, and persists the recent folders list to disk.
+    pub fn set_diary_base_path(&mut self, app_state: &mut AppState, path: String) {
+        app_state.diary_base_path = Some(path.clone());
+
+        let mut settings = Settings {
+            recent_folders: app_state.recent_folders.iter().cloned().collect(),
+        };
+        settings.push_recent_folder(path);
+        app_state.recent_folders = settings.recent_folders.iter().cloned().collect();
+
+        if let Err(err) = settings.save() {
+            tracing::error!("Could not save settings: {err}");
+        }
     }
 
     pub fn load_folder(&mut self, ctx: &mut EventCtx, app_state: &mut AppState) -> Option<()> {
@@ -191,7 +208,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
                 match app_state.open_file_purpose {
                     OpenFilePurpose::DiaryPath => {
                         if let Some(path) = cmd_data.path.to_str() {
-                            app_state.diary_base_path = Some(path.to_string());
+                            self.set_diary_base_path(app_state, path.to_string());
                         }
                     }
                 }

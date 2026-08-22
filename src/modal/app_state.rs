@@ -4,9 +4,6 @@ use im::Vector;
 use super::state::app_pages::AppPages;
 use super::state::{current_diary::CurrentDiary, diary_list_item::DiaryListItem};
 
-/// Pairs each diary with whether it is the currently selected one, so list
-/// item widgets can render a different background without needing access to
-/// the rest of `AppState`.
 pub struct DiariesWithSelectionLens;
 
 impl DiariesWithSelectionLens {
@@ -49,6 +46,27 @@ pub enum OpenFilePurpose {
     DiaryPath,
 }
 
+/// Adapts `Option<String>` to a plain `String` (empty string standing in for
+/// `None`) so `diary_base_path` can be driven by widgets, such as
+/// `ListSelect`, that operate on a concrete, non-optional value type.
+pub struct DiaryBasePathLens;
+
+impl Lens<AppState, String> for DiaryBasePathLens {
+    fn with<V, F: FnOnce(&String) -> V>(&self, data: &AppState, f: F) -> V {
+        match &data.diary_base_path {
+            Some(path) => f(path),
+            None => f(&String::new()),
+        }
+    }
+
+    fn with_mut<V, F: FnOnce(&mut String) -> V>(&self, data: &mut AppState, f: F) -> V {
+        let mut current = data.diary_base_path.clone().unwrap_or_default();
+        let result = f(&mut current);
+        data.diary_base_path = (!current.is_empty()).then_some(current);
+        result
+    }
+}
+
 #[derive(Clone, Data, Lens)]
 pub struct AppState {
     pub app_title: String,
@@ -59,6 +77,7 @@ pub struct AppState {
 
     pub diary_base_path: Option<String>,
     pub encrypt_key: Option<String>,
+    pub recent_folders: Vector<String>,
 
     pub diaries: Vector<DiaryListItem>,
 
@@ -75,6 +94,7 @@ impl AppState {
             encrypt_key: None,
             open_file_purpose: OpenFilePurpose::DiaryPath,
             diary_base_path: None,
+            recent_folders: Vector::new(),
             diaries: Vector::new(),
             current_diary: CurrentDiary::new().with_is_selected(false),
             txt_diary: "".into(),

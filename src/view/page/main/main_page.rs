@@ -1,18 +1,41 @@
 use druid::{
     widget::{
         Button, CrossAxisAlignment, FillStrat, Flex, FlexParams, Image, Label, MainAxisAlignment,
-        TextBox,
+        Scroll, TextBox, ViewSwitcher,
     },
     FileDialogOptions, LocalizedString, Widget, WidgetExt,
 };
+use druid_widget_nursery::ListSelect;
 
 use crate::{
     modal::{
-        app_state::{AppState, OpenFilePurpose},
+        app_state::{AppState, DiaryBasePathLens, OpenFilePurpose},
         state::app_pages::AppPages,
     },
     utils::get_image::get_image,
 };
+
+const RECENT_FOLDERS_LIST_HEIGHT: f64 = 120_f64;
+
+/// Rebuilds a `ListSelect` whenever `recent_folders` changes, since
+/// `ListSelect` takes its list of choices at construction time rather than
+/// reading it reactively from the widget data.
+fn build_recent_folders_list() -> impl Widget<AppState> {
+    let list_select = ViewSwitcher::new(
+        |data: &AppState, _env| data.recent_folders.clone(),
+        |recent_folders, _data, _env| {
+            let items = recent_folders
+                .iter()
+                .map(|path| (path.clone(), path.clone()));
+
+            Box::new(ListSelect::new(items).lens(DiaryBasePathLens)) as Box<dyn Widget<AppState>>
+        },
+    );
+
+    Scroll::new(list_select)
+        .vertical()
+        .fix_height(RECENT_FOLDERS_LIST_HEIGHT)
+}
 
 pub fn build_ui() -> impl Widget<AppState> {
     let label_welcome = Label::new(LocalizedString::new("page-login-title"));
@@ -78,6 +101,12 @@ pub fn build_ui() -> impl Widget<AppState> {
                         .expand(),
                     FlexParams::new(100_f64, CrossAxisAlignment::Start),
                 )
+                .with_default_spacer()
+                .with_flex_child(
+                    Label::new(LocalizedString::new("page-login-recentFolders")),
+                    FlexParams::new(100_f64, CrossAxisAlignment::Start),
+                )
+                .with_child(build_recent_folders_list())
                 .with_default_spacer()
                 .with_flex_child(
                     Label::new(LocalizedString::new("page-login-enterPassword")),

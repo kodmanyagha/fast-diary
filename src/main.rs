@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use anyhow::anyhow;
 use chrono::{TimeDelta, Utc};
-use config::app_config::get_app_config;
+use config::{app_config::get_app_config, settings::Settings};
 use druid::{
     AppLauncher, ExtEventSink, Point, Size, Target, WindowConfig, WindowDesc, WindowLevel,
     WindowSizePolicy,
@@ -32,7 +32,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app_config = get_app_config();
     // TODO Log or print not working in here, fix this problem.
-    tracing::info!(">>>>>>>>>>>>> Current os: {}", std::env::consts::OS);
+    tracing::info!("Current os: {}", std::env::consts::OS);
 
     let window_config = WindowConfig::default()
         .window_size_policy(WindowSizePolicy::User)
@@ -44,15 +44,16 @@ async fn main() -> anyhow::Result<()> {
         .with_min_size(Size::new(600f64, 400f64))
         .window_size(Size::new(800f64, 600f64));
 
-    let app_data = AppState::new();
+    let settings = Settings::load();
+    let mut app_data = AppState::new();
+    app_data.recent_folders = settings.recent_folders.into();
     let main_window = WindowDesc::new(main::main_window::build_ui()).with_config(window_config);
     let app = AppLauncher::with_window(main_window);
 
     set_event_sink(app.get_external_handle());
     tokio::spawn(event_sink_handle(app.get_external_handle()));
 
-    app.launch(app_data)
-        .map_err(|err| anyhow!(err.to_string()))
+    app.launch(app_data).map_err(|err| anyhow!(err.to_string()))
 }
 
 async fn event_sink_handle(event_sink: ExtEventSink) {
