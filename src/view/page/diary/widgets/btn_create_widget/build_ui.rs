@@ -10,7 +10,7 @@ pub fn build_btn_create() -> impl Widget<AppState> {
     // let widget_id_on_click_clone = arc_widget_id.clone();
 
     Button::new("Create")
-        .on_click(move |ctx, data, env| {
+        .on_click(move |ctx, _data, _env| {
             // ctx.submit_command(Command::new(
             //     BTN_CREATE_CLICK,
             //     (),

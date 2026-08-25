@@ -1,5 +1,3 @@
-use chrono::DateTime;
-use chrono::Utc;
 use druid::widget::CrossAxisAlignment;
 use druid::widget::Flex;
 use druid::widget::FlexParams;
@@ -15,15 +13,11 @@ use crate::consts::druid_selector;
 use crate::modal::app_state::AppState;
 
 #[derive(Debug, Default)]
-struct DiaryTextController {
-    last_save_time: DateTime<Utc>,
-}
+struct DiaryTextController;
 
 impl DiaryTextController {
     pub fn new() -> Self {
-        Self {
-            ..Default::default()
-        }
+        Self
     }
 }
 
@@ -58,8 +52,8 @@ impl<W: Widget<String>> Controller<String, W> for DiaryTextController {
 
 pub fn optional() -> impl Widget<AppState> {
     ViewSwitcher::new(
-        |data: &AppState, env| data.current_diary.is_selected,
-        |selector, data, env| {
+        |data: &AppState, _env| data.current_diary.is_selected,
+        |selector, _data, _env| {
             if *selector {
                 Box::new(
                     Flex::column()

@@ -5,6 +5,7 @@ use crate::{consts::druid_selector, modal::app_state::AppState};
 /// Adds ArrowUp/ArrowDown keyboard navigation to the diary list, moving the
 /// current selection to the previous/next entry the same way clicking an
 /// entry does (save the currently open diary, then load the new one).
+#[derive(Default)]
 pub struct DiaryListController;
 
 impl DiaryListController {

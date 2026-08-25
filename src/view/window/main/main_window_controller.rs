@@ -30,7 +30,7 @@ impl MainWindowController {
 
     pub fn handle_diary_create(
         &self,
-        ctx: &mut EventCtx,
+        _ctx: &mut EventCtx,
         app_state: &mut AppState,
     ) -> anyhow::Result<()> {
         let current_date = Local::now();
@@ -87,7 +87,7 @@ impl MainWindowController {
         }
     }
 
-    pub fn load_folder(&mut self, ctx: &mut EventCtx, app_state: &mut AppState) -> Option<()> {
+    pub fn load_folder(&mut self, _ctx: &mut EventCtx, app_state: &mut AppState) -> Option<()> {
         let dir_content = fs::read_dir(app_state.diary_base_path.clone()?).ok()?;
 
         app_state.diaries.clear();
@@ -105,8 +105,8 @@ impl MainWindowController {
     pub fn handle_diary_set_current(
         &mut self,
         cmd: &Command,
-        ctx: &mut EventCtx,
-        event: &Event,
+        _ctx: &mut EventCtx,
+        _event: &Event,
         app_state: &mut AppState,
     ) -> anyhow::Result<()> {
         let cmd_data = cmd.get_unchecked(druid_selector::DIARY_SET_CURRENT);
@@ -133,9 +133,9 @@ impl MainWindowController {
 
     fn handle_diary_save_current(
         &mut self,
-        cmd: &Command,
-        ctx: &mut EventCtx,
-        event: &Event,
+        _cmd: &Command,
+        _ctx: &mut EventCtx,
+        _event: &Event,
         app_state: &mut AppState,
     ) -> anyhow::Result<()> {
         if !app_state.current_diary.is_selected {

@@ -67,7 +67,7 @@ pub fn build_ui() -> impl Widget<AppState> {
         )
         .expand_height()
         .expand_width()
-        .on_added(|widget, ctx, data, env| {
+        .on_added(|_widget, ctx, _data, _env| {
             ctx.submit_command(Command::new(
                 druid_selector::DIARY_LOAD_FOLDER,
                 (),

@@ -29,12 +29,12 @@ pub fn build_diary_list_item() -> impl Widget<(DiaryListItem, bool)> {
     Container::new(
         Flex::row()
             .with_flex_child(
-                Label::dynamic(|d: &DiaryListItem, event| d.date.to_string()[0..19].to_string()),
+                Label::dynamic(|d: &DiaryListItem, _env| d.date.to_string()[0..19].to_string()),
                 FlexParams::new(67.0, Some(CrossAxisAlignment::Center)),
             )
             .with_default_spacer()
             .with_flex_child(
-                Label::dynamic(|d: &DiaryListItem, event| d.summary.to_owned()).expand_width(),
+                Label::dynamic(|d: &DiaryListItem, _env| d.summary.to_owned()).expand_width(),
                 FlexParams::new(33.0, Some(CrossAxisAlignment::Center)),
             )
             .lens(druid::lens!((DiaryListItem, bool), 0))

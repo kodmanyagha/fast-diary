@@ -4,6 +4,7 @@ use anyhow::anyhow;
 use chrono::{NaiveDate, NaiveDateTime, Utc};
 
 struct Foo {
+    #[allow(dead_code)]
     pub id: String,
     pub id_static: &'static str,
 }
