@@ -11,7 +11,7 @@ use crate::{
     config::window_settings::MIN_WINDOW_SIZE,
     consts::druid_selector,
     modal::app_state::{AppState, DiaryBasePathLens, FolderProtection, OpenFilePurpose},
-    utils::{display_text::shorten_in_the_middle, get_image::get_image, localization::text},
+    utils::{display_text::shorten_in_the_middle, get_image::diary_icon, localization::text},
     vault::password::weak_password_warning,
     view::widget::password_box::password_box,
 };
@@ -186,7 +186,7 @@ pub fn build_ui() -> impl Widget<AppState> {
 
     Flex::column()
         .with_child(
-            Image::new(get_image("./resources/images/diary_icon_1.png"))
+            Image::new(diary_icon())
                 .fill_mode(FillStrat::Contain)
                 .padding(10_f64)
                 .fix_height(100_f64),

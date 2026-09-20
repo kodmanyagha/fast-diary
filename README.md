@@ -81,6 +81,36 @@ $env:RUST_LOG='debug'; cargo watch -x run; $env:RUST_LOG=$null
   `resources/i18n/<locale>/builtin.ftl`. They are built into the program, and a text that a
   language lacks is taken from English.
 
+## Download and releases
+
+Every push to `main` and every pull request runs the checks (format, clippy and tests) in
+`.github/workflows/build.yml`. Every push to `main` also builds the program for these systems, and
+the builds can be downloaded from the run under the *Actions* tab of the repository (they are kept
+for 90 days):
+
+| Build                 | System                                |
+|-----------------------|---------------------------------------|
+| `linux-x86_64`        | Linux, needs GTK 3 on the computer    |
+| `windows-x86_64`      | Windows                               |
+| `macos-apple-silicon` | macOS on Apple Silicon (M1 and newer) |
+| `macos-intel`         | macOS on Intel processors             |
+
+To publish a version, raise `version` in `Cargo.toml`, commit it, and push a tag with the same
+number (the build stops when they differ):
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The builds of that tag are then published on the *Releases* page of the repository, together with
+generated release notes. Each archive has the program, this README and the license. The images and the texts are
+built into the program, so it can be started from any folder.
+
+The programs are not signed. Windows shows a *SmartScreen* warning (choose *More info* and *Run
+anyway*), and macOS blocks the first start (open it with a right click and *Open*, or run
+`xattr -d com.apple.quarantine fast-diary`).
+
 ## Settings file
 
 Everything that is remembered is in one JSON file:
@@ -140,6 +170,15 @@ the About window are checked for gaps in every language by `tests/localization_r
   title of the dialog that asks for a folder.
 - Wayland does not let an application place its window, so the remembered position has no effect
   there. The size and the bars are restored.
+
+## License
+
+Copyright (C) 2026 Emir Buğra Köksalan
+
+Fast Diary is free software: you can redistribute it and change it under the terms of the GNU
+General Public License, version 3 or (at your option) any later version. It is distributed in the
+hope that it will be useful, but without any warranty. The full text is in the file
+[LICENSE](LICENSE).
 
 ## Contact
 

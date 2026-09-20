@@ -2,6 +2,9 @@
 name = "fast-diary"
 version = "0.1.0"
 edition = "2021"
+authors = ["Emir Buğra Köksalan <kodmanyagha@gmail.com>"]
+license = "GPL-3.0-or-later"
+repository = "https://github.com/kodmanyagha/fast-diary"
 
 [dependencies]
 anyhow = "=1.0.104"

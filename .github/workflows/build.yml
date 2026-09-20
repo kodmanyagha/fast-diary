@@ -1,0 +1,143 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  check:
+    name: Format, lint and test
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install GTK
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: The tag matches the version of the package
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          package_version="$(cargo pkgid | sed 's/.*[#@]//')"
+          if [ "v${package_version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "The tag ${GITHUB_REF_NAME} does not match the version ${package_version} in Cargo.toml."
+            exit 1
+          fi
+
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - run: cargo test --locked
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: check
+    if: github.event_name != 'pull_request'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86_64
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            binary: fast-diary
+            archive: tar.gz
+          - name: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary: fast-diary.exe
+            archive: zip
+          - name: macos-apple-silicon
+            os: macos-latest
+            target: aarch64-apple-darwin
+            binary: fast-diary
+            archive: tar.gz
+          - name: macos-intel
+            os: macos-latest
+            target: x86_64-apple-darwin
+            binary: fast-diary
+            archive: tar.gz
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install GTK
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Package
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          BINARY: ${{ matrix.binary }}
+          ARCHIVE_KIND: ${{ matrix.archive }}
+          PLATFORM: ${{ matrix.name }}
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            version="${GITHUB_REF_NAME}"
+          else
+            version="${GITHUB_SHA::7}"
+          fi
+          folder="fast-diary-${version}-${PLATFORM}"
+
+          mkdir "${folder}"
+          cp "target/${TARGET}/release/${BINARY}" README.md LICENSE "${folder}/"
+
+          if [[ "${ARCHIVE_KIND}" == "zip" ]]; then
+            7z a -tzip "${folder}.zip" "${folder}"
+            echo "ASSET=${folder}.zip" >> "${GITHUB_ENV}"
+          else
+            tar czf "${folder}.tar.gz" "${folder}"
+            echo "ASSET=${folder}.tar.gz" >> "${GITHUB_ENV}"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fast-diary-${{ matrix.name }}
+          path: ${{ env.ASSET }}
+          if-no-files-found: error
+
+  release:
+    name: Publish the release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
