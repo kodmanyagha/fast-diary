@@ -50,8 +50,6 @@ impl Settings {
         Ok(())
     }
 
-    /// Moves `folder_path` to the front of `recent_folders`, dedupes it, and
-    /// caps the list at `MAX_RECENT_FOLDERS`.
     pub fn push_recent_folder(&mut self, folder_path: String) {
         self.recent_folders.retain(|item| item != &folder_path);
         self.recent_folders.insert(0, folder_path);

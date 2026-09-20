@@ -1,9 +1,7 @@
-use std::fs::DirEntry;
-
 use chrono::{NaiveDate, NaiveDateTime, Utc};
 use druid::{Data, Lens};
 
-use crate::{giveo, modal::diary_datetime::DiaryDate, utils::diary::diary_summary};
+use crate::modal::diary_datetime::DiaryDate;
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct DiaryListItem {
@@ -48,6 +46,21 @@ impl DiaryListItem {
         self.file_name = file_name;
     }
 
+    /// Builds a list item from a diary file name such as `240101123000.md.enc`, whose leading
+    /// part holds the diary date.
+    pub fn from_file_name(file_name: &str, summary: String) -> Result<Self, String> {
+        let date_part = file_name
+            .split('.')
+            .next()
+            .ok_or("Filename doesn't have any extension")?;
+        let date = Self::parse_date(date_part.to_string()).ok_or("Filename format is wrong.")?;
+
+        Ok(Self::new()
+            .with_date(date)
+            .with_summary(summary)
+            .with_file_name(file_name.to_string()))
+    }
+
     fn parse_date(date_str: String) -> Option<DiaryDate> {
         let formats = vec![
             "%y%m%d%H%M%S",
@@ -84,26 +97,35 @@ impl Default for DiaryListItem {
     }
 }
 
-impl TryFrom<DirEntry> for DiaryListItem {
-    type Error = String;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    fn try_from(value: DirEntry) -> Result<Self, Self::Error> {
-        let mut diary_list_item = DiaryListItem::new();
-        let filename = giveo!(value.file_name().to_str(), "File error".to_string()).to_string();
+    #[test]
+    fn parses_plain_and_encrypted_file_names() {
+        let plain = DiaryListItem::from_file_name("240101123000.md", "s".into());
+        let encrypted = DiaryListItem::from_file_name("240101123000.md.enc", "s".into());
 
-        diary_list_item.set_file_name(filename.clone());
-
-        let filename = filename
-            .split(".")
-            .next()
-            .ok_or("Filename doesn't have any extension")?;
-
-        diary_list_item.set_date(
-            DiaryListItem::parse_date(filename.into()).ok_or("Filename format is wrong.")?,
+        assert!(plain.is_ok());
+        assert!(encrypted.is_ok());
+        assert_eq!(
+            plain.map(|item| item.date.timestamp()),
+            encrypted.map(|item| item.date.timestamp())
         );
+    }
 
-        diary_list_item.set_summary(diary_summary(value.path()).map_err(|e| format!("{e}"))?);
+    #[test]
+    fn keeps_file_name_and_summary() -> Result<(), String> {
+        let item = DiaryListItem::from_file_name("240101123000.md.enc", "hello".into())?;
 
-        Ok(diary_list_item)
+        assert_eq!(item.file_name, "240101123000.md.enc");
+        assert_eq!(item.summary, "hello");
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_names_without_a_date() {
+        assert!(DiaryListItem::from_file_name("notes.md", String::new()).is_err());
+        assert!(DiaryListItem::from_file_name(".encrypted", String::new()).is_err());
     }
 }

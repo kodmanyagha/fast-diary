@@ -1,8 +1,14 @@
+use std::sync::Arc;
+
 use druid::{Data, Lens};
 use im::Vector;
 
 use super::state::app_pages::AppPages;
 use super::state::{current_diary::CurrentDiary, diary_list_item::DiaryListItem};
+use crate::{
+    storage::{codec::Codec, diary_store::DiaryStore, history::HistoryPolicy},
+    vault::folder_key::FolderKey,
+};
 
 pub struct DiariesWithSelectionLens;
 
@@ -46,9 +52,19 @@ pub enum OpenFilePurpose {
     DiaryPath,
 }
 
-/// Adapts `Option<String>` to a plain `String` (empty string standing in for
-/// `None`) so `diary_base_path` can be driven by widgets, such as
-/// `ListSelect`, that operate on a concrete, non-optional value type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
+pub enum FolderProtection {
+    Plain,
+    Encrypted,
+}
+
+#[derive(Debug, Clone, Default, Data, Lens)]
+pub struct PasswordChangeForm {
+    pub current_password: String,
+    pub new_password: String,
+    pub confirmation: String,
+}
+
 pub struct DiaryBasePathLens;
 
 impl Lens<AppState, String> for DiaryBasePathLens {
@@ -72,11 +88,15 @@ pub struct AppState {
     pub app_title: String,
     pub page: AppPages,
     pub password: String,
+    pub password_confirmation: String,
+    pub password_change: PasswordChangeForm,
+    pub status_message: String,
 
     pub open_file_purpose: OpenFilePurpose,
 
     pub diary_base_path: Option<String>,
-    pub encrypt_key: Option<String>,
+    pub folder_protection: FolderProtection,
+    pub folder_key: Option<Arc<FolderKey>>,
     pub recent_folders: Vector<String>,
 
     pub diaries: Vector<DiaryListItem>,
@@ -91,7 +111,11 @@ impl AppState {
             app_title: "Fast Diary".to_string(),
             page: AppPages::Main,
             password: "".to_string(),
-            encrypt_key: None,
+            password_confirmation: "".to_string(),
+            password_change: PasswordChangeForm::default(),
+            status_message: "".to_string(),
+            folder_protection: FolderProtection::Plain,
+            folder_key: None,
             open_file_purpose: OpenFilePurpose::DiaryPath,
             diary_base_path: None,
             recent_folders: Vector::new(),
@@ -103,6 +127,20 @@ impl AppState {
 
     pub fn get_diary_base_path(&self) -> Option<String> {
         self.diary_base_path.clone()
+    }
+
+    /// Returns the store of the selected diary folder. Returns `None` when no folder is
+    /// selected or when the folder is encrypted but not unlocked, so that a locked folder can
+    /// never be read or written as plain text by accident.
+    pub fn diary_store(&self) -> Option<DiaryStore> {
+        let base_path = self.diary_base_path.as_ref()?;
+        let codec = match (self.folder_protection, &self.folder_key) {
+            (FolderProtection::Plain, _) => Codec::Plain,
+            (FolderProtection::Encrypted, Some(folder_key)) => Codec::Encrypted(folder_key.clone()),
+            (FolderProtection::Encrypted, None) => return None,
+        };
+
+        Some(DiaryStore::new(base_path, HistoryPolicy::default(), codec))
     }
 }
 

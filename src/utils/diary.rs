@@ -1,38 +1,33 @@
-use std::{
-    fs::File,
-    io::{BufReader, Read},
-    path::PathBuf,
-};
+pub const MAX_DIARY_SUMMARY_LENGTH: usize = 30;
 
-use anyhow::anyhow;
+/// Summarizes a diary as its first non-empty line, cut to `MAX_DIARY_SUMMARY_LENGTH` characters.
+pub fn summarize(text: &str) -> String {
+    text.lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty())
+        .map(|line| line.chars().take(MAX_DIARY_SUMMARY_LENGTH).collect())
+        .unwrap_or_default()
+}
 
-pub static MAX_DIARY_SUMMARY_LENGTH: usize = 30;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-pub fn diary_summary(diary_path: PathBuf) -> anyhow::Result<String> {
-    let mut file_reader = BufReader::new(File::open(diary_path)?);
-
-    let mut summary_buf = Vec::<u8>::new();
-    let mut utf8_buf = Vec::<u8>::new();
-    let mut whitespace_received = false;
-    while file_reader.read(&mut utf8_buf)? != 0 {
-        let character = String::from_utf8(utf8_buf.clone());
-
-        let Ok(character) = character else { continue };
-        let Some(character) = character.chars().next() else {
-            continue;
-        };
-
-        if whitespace_received {
-            continue;
-        } else {
-            summary_buf.extend_from_slice(character.to_string().as_bytes());
-
-            whitespace_received = character.is_whitespace();
-        }
+    #[test]
+    fn empty_text_has_empty_summary() {
+        assert_eq!(summarize(""), "");
+        assert_eq!(summarize("  \n\t\n"), "");
     }
 
-    Ok(String::from_utf8(summary_buf)
-        .map_err(|_| anyhow!("asd"))?
-        .trim()
-        .to_string())
+    #[test]
+    fn summary_is_first_non_empty_line() {
+        assert_eq!(summarize("\n\n  Dear diary  \nsecond line"), "Dear diary");
+    }
+
+    #[test]
+    fn summary_is_cut_by_characters_not_bytes() {
+        let summary = summarize(&"ğ".repeat(MAX_DIARY_SUMMARY_LENGTH + 10));
+
+        assert_eq!(summary.chars().count(), MAX_DIARY_SUMMARY_LENGTH);
+    }
 }

@@ -4,7 +4,6 @@ use druid::ExtEventSink;
 
 static EVENT_SINK: OnceLock<ExtEventSink> = OnceLock::new();
 
-/// Must be called once, before any widget tries to use [`get_event_sink`].
 pub fn set_event_sink(sink: ExtEventSink) {
     if EVENT_SINK.set(sink).is_err() {
         tracing::error!("event sink was already initialized; ignoring redundant call");

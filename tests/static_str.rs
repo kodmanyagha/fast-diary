@@ -12,8 +12,6 @@ struct Foo {
 impl Drop for Foo {
     fn drop(&mut self) {
         unsafe {
-            // Rebuild String object which encapsulates original pointer of static str.
-            // After that we can drop it.
             let reconstructed_string = String::from_raw_parts(
                 self.id_static.as_ptr() as *mut u8,
                 self.id_static.len(),
@@ -27,7 +25,6 @@ impl Drop for Foo {
 
 impl Foo {
     pub fn new(id: String) -> Self {
-        // We must fix inner vec size as correct string length.
         let mut id_shrink = id.clone();
         id_shrink.shrink_to_fit();
         let id_static = id_shrink.clone().leak();
@@ -61,15 +58,10 @@ fn test_static_str() {
     unsafe {
         let layout = std::alloc::Layout::new::<u8>();
 
-        // let raw_ptr = static_str_1.get_unchecked_mut(0..static_str_1.len() - 1);
-        // let raw_ptr = static_str_1.as_mut_ptr();
         std::alloc::dealloc(static_str_1.as_ptr() as *mut u8, layout);
-        // std::mem::forget(*raw_ptr);
     }
     println!("Static str after dealloc");
     print_static_str(static_str_1);
-
-    //assert_eq!(static_str_1, "string_1");
 }
 
 #[test]
@@ -91,7 +83,6 @@ fn test_immediate_call_fn_1() {
     })();
     println!(">>> str_1: {str_1}");
 
-    // iflet is better than match syntax for Result and Option values.
     if let Ok(odd) = odd_result {
         println!(">>> Success: {odd}");
     } else if let Err(err) = odd_result {
@@ -148,7 +139,6 @@ fn test_rwlock_1() {
     let mut writer = rwlock_1.write().unwrap();
     *writer += 1;
 
-    // You have to drop the writer, otherwise thread enters to endless loop.
     drop(writer);
 
     let reader = rwlock_1.read().unwrap();

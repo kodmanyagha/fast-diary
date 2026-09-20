@@ -1,31 +1,49 @@
-use std::{
-    fs::{self, File, OpenOptions},
-    io::Write,
-    path::Path,
-};
+use std::time::{Duration, Instant};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use chrono::Local;
-use druid::{widget::Controller, Command, Env, Event, EventCtx, Widget};
+use druid::{
+    widget::Controller, Command, Env, Event, EventCtx, LifeCycle, LifeCycleCtx, TimerToken, Widget,
+};
 
 use crate::{
     config::settings::Settings,
     consts::druid_selector,
-    giver,
     modal::{
         app_state::{AppState, OpenFilePurpose},
-        app_state_utils::diaries_compare_rev,
-        state::diary_list_item::DiaryListItem,
+        state::current_diary::CurrentDiary,
     },
-    utils::{consts::DEFAULT_DIARY_NAME, diary::diary_summary},
+    utils::{consts::DEFAULT_DIARY_NAME, diary::summarize},
 };
 
-#[derive(Debug, Default)]
-pub struct MainWindowController;
+use super::main_window_controller_utils::{
+    change_folder_password, encrypt_selected_folder, load_diary_items, lock_folder,
+    open_selected_folder, refresh_folder_protection,
+};
+
+const AUTOSAVE_INTERVAL: Duration = Duration::from_secs(5);
+const AUTO_LOCK_AFTER: Duration = Duration::from_secs(10 * 60);
+
+#[derive(Debug)]
+pub struct MainWindowController {
+    observed_base_path: Option<String>,
+    autosave_timer: TimerToken,
+    last_activity: Instant,
+}
+
+impl Default for MainWindowController {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl MainWindowController {
     pub fn new() -> Self {
-        Self
+        Self {
+            observed_base_path: None,
+            autosave_timer: TimerToken::INVALID,
+            last_activity: Instant::now(),
+        }
     }
 
     pub fn handle_diary_create(
@@ -46,33 +64,32 @@ impl MainWindowController {
             if diff < 60 {
                 return Err(anyhow::anyhow!("Wait a little"));
             }
-            // return Ok(());
         }
 
-        let diary_file_name = format!("{}.md", Local::now().format(DEFAULT_DIARY_NAME));
+        let store = app_state
+            .diary_store()
+            .ok_or_else(|| anyhow!("Base path didn't selected."))?;
+        let diary_file_name = format!(
+            "{}.{}",
+            Local::now().format(DEFAULT_DIARY_NAME),
+            store.file_extension()
+        );
         tracing::info!("New diary file creating: {diary_file_name}");
 
-        let file_exist = app_state.diaries.iter().find(|item| {
-            item.file_name
-                .eq(format!("{}.md", diary_file_name).as_str())
-        });
+        let file_exist = app_state
+            .diaries
+            .iter()
+            .any(|item| item.file_name == diary_file_name);
 
-        if file_exist.is_some() {
+        if file_exist {
             return Err(anyhow::anyhow!("Same diary already exist."));
         }
 
-        let diary_base_path = app_state
-            .diary_base_path
-            .clone()
-            .ok_or(anyhow::anyhow!("Base path didn't selected."))?;
-
-        let _ = File::create_new(Path::new(&diary_base_path).join(&diary_file_name))?;
-
-        Ok(())
+        store
+            .create(&diary_file_name)
+            .with_context(|| format!("Could not create diary `{diary_file_name}`."))
     }
 
-    /// Sets the diary base path, moves it to the front of the recent folders
-    /// list, and persists the recent folders list to disk.
     pub fn set_diary_base_path(&mut self, app_state: &mut AppState, path: String) {
         app_state.diary_base_path = Some(path.clone());
 
@@ -88,16 +105,11 @@ impl MainWindowController {
     }
 
     pub fn load_folder(&mut self, _ctx: &mut EventCtx, app_state: &mut AppState) -> Option<()> {
-        let dir_content = fs::read_dir(app_state.diary_base_path.clone()?).ok()?;
+        let store = app_state.diary_store()?;
 
-        app_state.diaries.clear();
-
-        dir_content.for_each(|item| {
-            let file_dir_entry = giver!(item);
-            let diary_list_item = giver!(DiaryListItem::try_from(file_dir_entry));
-            app_state.diaries.push_back(diary_list_item);
-        });
-        app_state.diaries.sort_by(diaries_compare_rev);
+        app_state.diaries = load_diary_items(&store)
+            .inspect_err(|err| tracing::error!("Could not load diaries: {err:#}"))
+            .ok()?;
 
         Some(())
     }
@@ -109,64 +121,97 @@ impl MainWindowController {
         _event: &Event,
         app_state: &mut AppState,
     ) -> anyhow::Result<()> {
-        let cmd_data = cmd.get_unchecked(druid_selector::DIARY_SET_CURRENT);
+        let selected_diary =
+            CurrentDiary::from(cmd.get_unchecked(druid_selector::DIARY_SET_CURRENT));
+        let file_name = selected_diary.diary.file_name.clone();
 
-        app_state.current_diary = cmd_data.into();
+        let text = app_state
+            .diary_store()
+            .ok_or_else(|| anyhow!("Please select a path."))?
+            .read_text(&file_name)
+            .with_context(|| format!("Error occured when reading diary `{file_name}`."))?;
 
-        let fullpath_str = format!(
-            "{}/{}",
-            app_state
-                .diary_base_path
-                .clone()
-                .ok_or(anyhow!("Please select a path."))?,
-            app_state.current_diary.diary.file_name
-        );
-        let fullpath = Path::new(&fullpath_str);
-
-        let original_content = fs::read_to_string(fullpath)
-            .map_err(|err| anyhow!("Error occured when reading file content: {:?}", err))?;
-
-        app_state.txt_diary = original_content;
+        app_state.current_diary = selected_diary;
+        app_state.txt_diary = text;
 
         Ok(())
     }
 
-    fn handle_diary_save_current(
-        &mut self,
-        _cmd: &Command,
-        _ctx: &mut EventCtx,
-        _event: &Event,
-        app_state: &mut AppState,
-    ) -> anyhow::Result<()> {
+    fn handle_diary_save_current(&mut self, app_state: &mut AppState) -> anyhow::Result<()> {
         if !app_state.current_diary.is_selected {
             return Err(anyhow!("Diary not selected."));
         }
 
-        let selected_path = app_state
-            .get_diary_base_path()
-            .ok_or(anyhow!("Diary path did not selected."))?;
+        let store = app_state
+            .diary_store()
+            .ok_or_else(|| anyhow!("Diary path did not selected."))?;
+        let file_name = app_state.current_diary.diary.file_name.clone();
 
+        store
+            .write_text(&file_name, &app_state.txt_diary)
+            .with_context(|| format!("Could not save diary `{file_name}`."))?;
+
+        let updated_summary = summarize(&app_state.txt_diary);
         let found_diary = app_state
             .diaries
             .iter_mut()
             .find(|item| item.date.eq(&app_state.current_diary.diary.date));
 
-        let current_file = Path::new(&selected_path).join(&app_state.current_diary.diary.file_name);
-
         if let Some(found_diary) = found_diary {
-            found_diary.summary = diary_summary(current_file.clone())?;
+            found_diary.summary = updated_summary;
         }
 
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(current_file)?;
-
-        file.write_all(app_state.txt_diary.as_bytes())?;
-        file.sync_all()?;
-
         Ok(())
+    }
+
+    /// Saves the opened diary, then locks the folder. The folder stays open when saving fails,
+    /// so no unsaved text is lost.
+    fn save_then_lock(&mut self, app_state: &mut AppState) -> anyhow::Result<()> {
+        if app_state.current_diary.is_selected {
+            self.handle_diary_save_current(app_state)?;
+        }
+
+        lock_folder(app_state);
+        Ok(())
+    }
+
+    /// Saves the opened diary and locks the folder after a period without user activity.
+    fn handle_autosave_tick(&mut self, ctx: &mut EventCtx, app_state: &mut AppState) {
+        if app_state.current_diary.is_selected {
+            if let Err(err) = self.handle_diary_save_current(app_state) {
+                tracing::warn!("Autosave failed: {err:#}");
+            }
+        }
+
+        let should_auto_lock =
+            app_state.folder_key.is_some() && self.last_activity.elapsed() >= AUTO_LOCK_AFTER;
+        if should_auto_lock {
+            if let Err(err) = self.save_then_lock(app_state) {
+                tracing::warn!("Automatic lock failed: {err:#}");
+            }
+        }
+
+        self.autosave_timer = ctx.request_timer(AUTOSAVE_INTERVAL);
+    }
+
+    /// Resets the folder related state when the selected folder has changed.
+    fn sync_folder_protection(&mut self, app_state: &mut AppState) {
+        if self.observed_base_path != app_state.diary_base_path {
+            self.observed_base_path = app_state.diary_base_path.clone();
+            refresh_folder_protection(app_state);
+        }
+    }
+
+    /// Shows the outcome of a folder command to the user.
+    fn report_outcome(
+        app_state: &mut AppState,
+        outcome: anyhow::Result<()>,
+        success_message: &str,
+    ) {
+        app_state.status_message = match outcome {
+            Ok(()) => success_message.to_string(),
+            Err(err) => format!("{err:#}"),
+        };
     }
 }
 
@@ -181,13 +226,24 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
     ) {
         let mut pass_event_to_child = true;
 
-        if let Event::WindowSize(_size) = event {
-            //tracing::info!("Window resize event: {:?}", _size);
-        } else if let Event::MouseMove(_mouse_event) = event {
-            // tracing::info!("Mouse event: {:?}", _mouse_event.window_pos);
-        } else if let Event::Command(cmd) = event {
-            // TODO Improve this logic, there are lots of if-else blocks. Optimize this.
+        if matches!(event, Event::KeyDown(_) | Event::MouseDown(_)) {
+            self.last_activity = Instant::now();
+        }
 
+        if let Event::WindowSize(_size) = event {
+        } else if let Event::WindowDisconnected = event {
+            if app_state.current_diary.is_selected {
+                if let Err(err) = self.handle_diary_save_current(app_state) {
+                    tracing::error!("Could not save current diary on window close: {err}");
+                }
+            }
+        } else if let Event::Timer(token) = event {
+            if *token == self.autosave_timer {
+                self.handle_autosave_tick(ctx, app_state);
+                pass_event_to_child = false;
+            }
+        } else if let Event::MouseMove(_mouse_event) = event {
+        } else if let Event::Command(cmd) = event {
             if cmd.is(druid_selector::DIARY_ADD_ITEM) {
                 let cmd_data = cmd.get_unchecked(druid_selector::DIARY_ADD_ITEM);
                 app_state.diaries.push_back(cmd_data.to_owned());
@@ -199,8 +255,26 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
                 }
                 pass_event_to_child = false;
             } else if cmd.is(druid_selector::DIARY_SAVE_CURRENT) {
-                let _ = self.handle_diary_save_current(cmd, ctx, event, app_state);
+                if let Err(err) = self.handle_diary_save_current(app_state) {
+                    tracing::warn!("Could not save current diary: {err:#}");
+                }
 
+                pass_event_to_child = false;
+            } else if cmd.is(druid_selector::FOLDER_OPEN) {
+                let outcome = open_selected_folder(app_state);
+                Self::report_outcome(app_state, outcome, "");
+                pass_event_to_child = false;
+            } else if cmd.is(druid_selector::FOLDER_ENCRYPT) {
+                let outcome = encrypt_selected_folder(app_state);
+                Self::report_outcome(app_state, outcome, "");
+                pass_event_to_child = false;
+            } else if cmd.is(druid_selector::FOLDER_LOCK) {
+                let outcome = self.save_then_lock(app_state);
+                Self::report_outcome(app_state, outcome, "");
+                pass_event_to_child = false;
+            } else if cmd.is(druid_selector::FOLDER_CHANGE_PASSWORD) {
+                let outcome = change_folder_password(app_state);
+                Self::report_outcome(app_state, outcome, "Password changed.");
                 pass_event_to_child = false;
             } else if cmd.is(druid::commands::OPEN_FILE) {
                 let cmd_data = cmd.get_unchecked(druid::commands::OPEN_FILE);
@@ -227,5 +301,22 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
         if pass_event_to_child {
             child.event(ctx, event, app_state, env)
         }
+
+        self.sync_folder_protection(app_state);
+    }
+
+    fn lifecycle(
+        &mut self,
+        child: &mut W,
+        ctx: &mut LifeCycleCtx,
+        event: &LifeCycle,
+        app_state: &AppState,
+        env: &Env,
+    ) {
+        if let LifeCycle::WidgetAdded = event {
+            self.autosave_timer = ctx.request_timer(AUTOSAVE_INTERVAL);
+        }
+
+        child.lifecycle(ctx, event, app_state, env)
     }
 }

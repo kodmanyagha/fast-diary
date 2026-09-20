@@ -1,25 +1,88 @@
 use druid::{
     widget::{
-        Button, CrossAxisAlignment, FillStrat, Flex, Image, Label, MainAxisAlignment, Scroll,
-        TextBox, ViewSwitcher,
+        Button, CrossAxisAlignment, Either, FillStrat, Flex, Image, Label, MainAxisAlignment,
+        Scroll, SizedBox, ViewSwitcher,
     },
-    FileDialogOptions, LocalizedString, Widget, WidgetExt,
+    Color, FileDialogOptions, LocalizedString, Widget, WidgetExt,
 };
 use druid_widget_nursery::ListSelect;
 
 use crate::{
-    modal::{
-        app_state::{AppState, DiaryBasePathLens, OpenFilePurpose},
-        state::app_pages::AppPages,
-    },
+    consts::druid_selector,
+    modal::app_state::{AppState, DiaryBasePathLens, FolderProtection, OpenFilePurpose},
     utils::get_image::get_image,
+    vault::password::weak_password_warning,
+    view::widget::password_box::password_box,
 };
 
 const RECENT_FOLDERS_LIST_HEIGHT: f64 = 120_f64;
+const WARNING_COLOR: Color = Color::rgb8(200, 130, 0);
+const ERROR_COLOR: Color = Color::rgb8(200, 60, 60);
 
-/// Rebuilds a `ListSelect` whenever `recent_folders` changes, since
-/// `ListSelect` takes its list of choices at construction time rather than
-/// reading it reactively from the widget data.
+fn is_plain_folder_selected(data: &AppState) -> bool {
+    data.diary_base_path.is_some() && data.folder_protection == FolderProtection::Plain
+}
+
+/// Builds the part of the page that asks for the password of the selected folder and, for
+/// a folder that is not encrypted yet, offers to encrypt it.
+fn build_password_section() -> impl Widget<AppState> {
+    let folder_status = Label::dynamic(|data: &AppState, _env| {
+        match (&data.diary_base_path, data.folder_protection) {
+            (None, _) => "",
+            (Some(_), FolderProtection::Plain) => "This folder is not encrypted.",
+            (Some(_), FolderProtection::Encrypted) => "This folder is encrypted.",
+        }
+        .to_string()
+    });
+
+    let encrypt_section = Flex::column()
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .with_child(Label::new(
+            "Confirm password (only needed to encrypt this folder)",
+        ))
+        .with_default_spacer()
+        .with_child(
+            password_box(druid_selector::FOLDER_ENCRYPT).lens(AppState::password_confirmation),
+        )
+        .with_default_spacer()
+        .with_child(
+            Label::dynamic(|data: &AppState, _env| {
+                weak_password_warning(&data.password)
+                    .unwrap_or_default()
+                    .to_string()
+            })
+            .with_text_color(WARNING_COLOR),
+        )
+        .with_default_spacer()
+        .with_child(
+            Button::new("Encrypt this folder")
+                .on_click(|ctx, _data: &mut AppState, _| {
+                    ctx.submit_command(druid_selector::FOLDER_ENCRYPT)
+                })
+                .expand_width(),
+        )
+        .with_default_spacer();
+
+    Flex::column()
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .with_child(folder_status)
+        .with_default_spacer()
+        .with_child(Label::new(LocalizedString::new("page-login-enterPassword")))
+        .with_default_spacer()
+        .with_child(password_box(druid_selector::FOLDER_OPEN).lens(AppState::password))
+        .with_default_spacer()
+        .with_child(Either::new(
+            |data: &AppState, _env| is_plain_folder_selected(data),
+            encrypt_section,
+            SizedBox::empty(),
+        ))
+        .with_child(
+            Label::dynamic(|data: &AppState, _env| data.status_message.clone())
+                .with_text_color(ERROR_COLOR),
+        )
+        .with_default_spacer()
+}
+
 fn build_recent_folders_list() -> impl Widget<AppState> {
     let list_select = ViewSwitcher::new(
         |data: &AppState, _env| data.recent_folders.clone(),
@@ -100,14 +163,17 @@ pub fn build_ui() -> impl Widget<AppState> {
                 .with_default_spacer()
                 .with_child(build_recent_folders_list())
                 .with_default_spacer()
-                .with_child(Label::new(LocalizedString::new("page-login-enterPassword")))
-                .with_default_spacer()
-                .with_child(TextBox::new().expand_width().lens(AppState::password))
-                .with_default_spacer()
+                .with_child(build_password_section())
                 .with_child(
                     Button::new(LocalizedString::new("page-login-start"))
-                        .on_click(|_, data: &mut AppState, _| data.page = AppPages::Diary)
-                        .disabled_if(|data, _| data.diary_base_path.is_none())
+                        .on_click(|ctx, _data: &mut AppState, _| {
+                            ctx.submit_command(druid_selector::FOLDER_OPEN)
+                        })
+                        .disabled_if(|data, _| {
+                            data.diary_base_path.is_none()
+                                || (data.folder_protection == FolderProtection::Encrypted
+                                    && data.password.is_empty())
+                        })
                         .expand_width(),
                 )
                 .cross_axis_alignment(CrossAxisAlignment::Start)

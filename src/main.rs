@@ -1,28 +1,21 @@
 #![windows_subsystem = "windows"]
 
-pub mod config;
-pub mod consts;
-pub mod modal;
-pub mod utils;
-pub mod view;
-
 use std::time::Duration;
 
 use anyhow::anyhow;
 use chrono::{TimeDelta, Utc};
-use config::{app_config::get_app_config, settings::Settings};
 use druid::{
     AppLauncher, ExtEventSink, Point, Size, Target, WindowConfig, WindowDesc, WindowLevel,
     WindowSizePolicy,
 };
-use modal::{
-    app_state::AppState, diary_datetime::DiaryDateTime, state::diary_list_item::DiaryListItem,
-};
-use view::window::main::{self};
-
-use crate::{
+use fast_diary::{
+    config::{app_config::get_app_config, settings::Settings},
     consts::druid_selector,
+    modal::{
+        app_state::AppState, diary_datetime::DiaryDateTime, state::diary_list_item::DiaryListItem,
+    },
     utils::{event_sink::set_event_sink, logger::init_tracing_subscriber},
+    view::window::main::{self},
 };
 
 #[tokio::main]
@@ -31,7 +24,6 @@ async fn main() -> anyhow::Result<()> {
     init_tracing_subscriber();
 
     let app_config = get_app_config();
-    // TODO Log or print not working in here, fix this problem.
     tracing::info!("Current os: {}", std::env::consts::OS);
 
     let window_config = WindowConfig::default()
