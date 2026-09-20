@@ -1,5 +1,5 @@
 use druid::{
-    widget::{Button, CrossAxisAlignment, Flex, FlexParams, Label, List, Scroll, Split},
+    widget::{CrossAxisAlignment, Flex, FlexParams, Label, List, Scroll, ViewSwitcher},
     Color, Command, Insets, Target, Widget, WidgetExt,
 };
 
@@ -7,62 +7,51 @@ use crate::{
     consts::druid_selector,
     modal::{
         app_state::{AppState, DiariesWithSelectionLens},
-        state::app_pages::AppPages,
+        state::diary_view_mode::DiaryViewMode,
     },
     view::{
         page::diary::{
             diary_list_controller::DiaryListController,
             widgets::{
-                btn_create_widget::build_ui::build_btn_create,
-                build_diary_list_item::build_diary_list_item,
+                build_diary_list_item::build_diary_list_item, icon_toolbar::build_icon_toolbar,
             },
         },
-        widget::optional::optional,
+        widget::{calendar::build_calendar, optional::optional, persistent_split::PersistentSplit},
     },
 };
 
 const STATUS_COLOR: Color = Color::rgb8(200, 60, 60);
+const TOOLBAR_SPACING: f64 = 8.0;
+
+fn build_diary_list() -> impl Widget<AppState> {
+    Scroll::new(List::new(build_diary_list_item).lens(DiariesWithSelectionLens))
+        .vertical()
+        .expand_width()
+        .expand_height()
+        .controller(DiaryListController::new())
+}
+
+fn build_diary_browser(mode: DiaryViewMode) -> Box<dyn Widget<AppState>> {
+    match mode {
+        DiaryViewMode::List => Box::new(build_diary_list()),
+        DiaryViewMode::Calendar => Box::new(build_calendar()),
+    }
+}
 
 pub fn build_ui() -> impl Widget<AppState> {
-    let btn_create_1 = build_btn_create();
-    let btn_settings = Button::new("Settings")
-        .on_click(|_ctx, data: &mut AppState, _| {
-            data.status_message.clear();
-            data.page = AppPages::Settings;
-        })
-        .expand();
-    let btn_close = Button::new("Close")
-        .on_click(|ctx, _data: &mut AppState, _| ctx.submit_command(druid_selector::FOLDER_LOCK))
-        .expand();
-
     let split_left_side = Flex::column()
-        .with_flex_child(
-            Flex::row()
-                .with_flex_child(
-                    btn_create_1,
-                    FlexParams::new(100.0, Some(CrossAxisAlignment::Center)),
-                )
-                .with_flex_child(
-                    btn_settings,
-                    FlexParams::new(70.0, Some(CrossAxisAlignment::Center)),
-                )
-                .with_flex_child(
-                    btn_close,
-                    FlexParams::new(70.0, Some(CrossAxisAlignment::Center)),
-                )
-                .expand_width(),
-            FlexParams::new(10.0, Some(CrossAxisAlignment::Center)),
-        )
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .with_child(build_icon_toolbar())
+        .with_spacer(TOOLBAR_SPACING)
         .with_child(
             Label::dynamic(|data: &AppState, _env| data.status_message.clone())
                 .with_text_color(STATUS_COLOR),
         )
         .with_flex_child(
-            Scroll::new(List::new(build_diary_list_item).lens(DiariesWithSelectionLens))
-                .vertical()
-                .expand_width()
-                .expand_height()
-                .controller(DiaryListController::new()),
+            ViewSwitcher::new(
+                |data: &AppState, _env| data.diary_view_mode,
+                |mode, _data, _env| build_diary_browser(*mode),
+            ),
             FlexParams::new(90.0, Some(CrossAxisAlignment::Start)),
         )
         .expand_width()
@@ -80,14 +69,15 @@ pub fn build_ui() -> impl Widget<AppState> {
 
     Flex::column()
         .with_flex_child(
-            Split::columns(split_left_side, split_right_side)
-                .split_point(0.3)
-                .draggable(true)
-                .bar_size(3f64)
-                .solid_bar(true)
-                .min_size(150f64, 400f64)
-                .expand_width()
-                .expand_height(),
+            PersistentSplit::columns(
+                split_left_side,
+                split_right_side,
+                AppState::list_split_ratio,
+            )
+            .bar_size(3f64)
+            .min_widths(200f64, 400f64)
+            .expand_width()
+            .expand_height(),
             FlexParams::new(100.0, Some(CrossAxisAlignment::Start)),
         )
         .expand_height()

@@ -4,8 +4,12 @@ use druid::{Data, Lens};
 use im::Vector;
 
 use super::state::app_pages::AppPages;
-use super::state::{current_diary::CurrentDiary, diary_list_item::DiaryListItem};
+use super::state::{
+    calendar_month::CalendarMonth, current_diary::CurrentDiary, diary_list_item::DiaryListItem,
+    diary_view_mode::DiaryViewMode, editor_mode::EditorMode, language::Language,
+};
 use crate::{
+    config::{layout_settings::LayoutSettings, window_settings::WindowSettings},
     storage::{codec::Codec, diary_store::DiaryStore, history::HistoryPolicy},
     vault::folder_key::FolderKey,
 };
@@ -100,9 +104,17 @@ pub struct AppState {
     pub recent_folders: Vector<String>,
 
     pub diaries: Vector<DiaryListItem>,
+    pub diary_view_mode: DiaryViewMode,
+    pub calendar_month: CalendarMonth,
 
     pub current_diary: CurrentDiary,
     pub txt_diary: String,
+    pub editor_mode: EditorMode,
+    pub language: Language,
+
+    pub window: WindowSettings,
+    pub list_split_ratio: f64,
+    pub editor_split_ratio: f64,
 }
 
 impl AppState {
@@ -120,8 +132,15 @@ impl AppState {
             diary_base_path: None,
             recent_folders: Vector::new(),
             diaries: Vector::new(),
+            diary_view_mode: DiaryViewMode::default(),
+            calendar_month: CalendarMonth::current().shifted(-1),
             current_diary: CurrentDiary::new().with_is_selected(false),
             txt_diary: "".into(),
+            editor_mode: EditorMode::default(),
+            language: Language::default(),
+            window: WindowSettings::default(),
+            list_split_ratio: LayoutSettings::default().list_split_ratio(),
+            editor_split_ratio: LayoutSettings::default().editor_split_ratio(),
         }
     }
 

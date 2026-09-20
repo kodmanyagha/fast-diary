@@ -1,6 +1,6 @@
 use druid::{
     widget::{Button, CrossAxisAlignment, Either, Flex, Label},
-    Color, Insets, LensExt, LocalizedString, Widget, WidgetExt,
+    Color, Insets, LensExt, Widget, WidgetExt,
 };
 
 use crate::{
@@ -9,6 +9,7 @@ use crate::{
         app_state::{AppState, FolderProtection, PasswordChangeForm},
         state::app_pages::AppPages,
     },
+    utils::localization::text,
     vault::password::weak_password_warning,
     view::widget::password_box::password_box,
 };
@@ -65,7 +66,7 @@ fn build_change_password_form() -> impl Widget<AppState> {
 }
 
 pub fn build_ui() -> impl Widget<AppState> {
-    let label_1 = Label::new(LocalizedString::new("page-settings-title"))
+    let label_1 = Label::new(text("page-settings-title"))
         .padding(5.0)
         .center();
 

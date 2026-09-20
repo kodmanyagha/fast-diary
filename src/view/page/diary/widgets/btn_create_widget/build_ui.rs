@@ -1,16 +1,12 @@
-use std::sync::Arc;
+use druid::Widget;
+use druid_material_icons::normal::content::ADD;
 
-use druid::{widget::Button, Widget, WidgetExt, WidgetId};
-
-use crate::{consts::druid_selector, modal::app_state::AppState};
+use crate::{
+    consts::druid_selector, modal::app_state::AppState, view::widget::icon_button::icon_button,
+};
 
 pub fn build_btn_create() -> impl Widget<AppState> {
-    let arc_widget_id = Arc::new(WidgetId::next());
-
-    Button::new("Create")
-        .on_click(move |ctx, _data, _env| {
-            ctx.submit_command(druid_selector::CREATE_NEW_DIARY);
-        })
-        .with_id(*arc_widget_id)
-        .expand()
+    icon_button(ADD, "menu-file-new-diary", |ctx, _app_state, _env| {
+        ctx.submit_command(druid_selector::CREATE_NEW_DIARY)
+    })
 }

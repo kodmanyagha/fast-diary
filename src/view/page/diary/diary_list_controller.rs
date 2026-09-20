@@ -1,6 +1,11 @@
-use druid::{keyboard_types::Key, widget::Controller, Env, Event, EventCtx, Widget};
+use druid::{
+    keyboard_types::Key, widget::Controller, Env, Event, EventCtx, LifeCycle, LifeCycleCtx, Widget,
+};
 
-use crate::{consts::druid_selector, modal::app_state::AppState};
+use crate::{
+    consts::druid_selector,
+    modal::{app_state::AppState, app_state_utils::relative_diary},
+};
 
 #[derive(Default)]
 pub struct DiaryListController;
@@ -10,30 +15,8 @@ impl DiaryListController {
         Self
     }
 
-    fn select_offset(&self, ctx: &mut EventCtx, app_state: &mut AppState, offset: isize) {
-        if app_state.diaries.is_empty() {
-            return;
-        }
-
-        let current_index = app_state.current_diary.is_selected.then(|| {
-            app_state
-                .diaries
-                .iter()
-                .position(|item| item.file_name == app_state.current_diary.diary.file_name)
-        });
-
-        let next_index = match current_index.flatten() {
-            Some(index) => {
-                let new_index = index as isize + offset;
-                if new_index < 0 || new_index as usize >= app_state.diaries.len() {
-                    return;
-                }
-                new_index as usize
-            }
-            None => 0,
-        };
-
-        let Some(next_diary) = app_state.diaries.get(next_index).cloned() else {
+    fn select_offset(&self, ctx: &mut EventCtx, app_state: &AppState, offset: isize) {
+        let Some(next_diary) = relative_diary(app_state, offset) else {
             return;
         };
 
@@ -52,7 +35,9 @@ impl<W: Widget<AppState>> Controller<AppState, W> for DiaryListController {
         env: &Env,
     ) {
         if let Event::Command(cmd) = event {
-            if cmd.is(druid_selector::DIARY_LOAD_FOLDER) {
+            if cmd.is(druid_selector::DIARY_LOAD_FOLDER)
+                || cmd.is(druid_selector::DIARY_BROWSER_FOCUS)
+            {
                 ctx.request_focus();
             }
         }
@@ -74,5 +59,20 @@ impl<W: Widget<AppState>> Controller<AppState, W> for DiaryListController {
         }
 
         child.event(ctx, event, data, env)
+    }
+
+    fn lifecycle(
+        &mut self,
+        child: &mut W,
+        ctx: &mut LifeCycleCtx,
+        event: &LifeCycle,
+        data: &AppState,
+        env: &Env,
+    ) {
+        if let LifeCycle::WidgetAdded = event {
+            ctx.submit_command(druid_selector::DIARY_BROWSER_FOCUS);
+        }
+
+        child.lifecycle(ctx, event, data, env)
     }
 }

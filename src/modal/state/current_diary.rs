@@ -5,6 +5,7 @@ use super::diary_list_item::DiaryListItem;
 #[derive(Debug, Clone, Data, Lens)]
 pub struct CurrentDiary {
     pub is_selected: bool,
+    pub is_draft: bool,
     pub diary: DiaryListItem,
 }
 
@@ -12,7 +13,17 @@ impl CurrentDiary {
     pub fn new() -> Self {
         Self {
             is_selected: false,
+            is_draft: false,
             diary: DiaryListItem::new(),
+        }
+    }
+
+    /// Selects a diary that has no file yet. The file is created when text is written to it.
+    pub fn draft(diary: DiaryListItem) -> Self {
+        Self {
+            is_selected: true,
+            is_draft: true,
+            diary,
         }
     }
 
@@ -32,6 +43,7 @@ impl From<DiaryListItem> for CurrentDiary {
     fn from(value: DiaryListItem) -> Self {
         Self {
             is_selected: true,
+            is_draft: false,
             diary: value,
         }
     }
@@ -41,6 +53,7 @@ impl From<&DiaryListItem> for CurrentDiary {
     fn from(value: &DiaryListItem) -> Self {
         Self {
             is_selected: true,
+            is_draft: false,
             diary: value.clone(),
         }
     }
