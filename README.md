@@ -45,12 +45,19 @@ A simple, fast diary app for writing your daily notes in Markdown.
 ## Download
 
 Every push to `main` builds the program for Linux, Windows and macOS. Builds can be downloaded
-from the *Actions* tab of the repository, and tagged releases are published on the *Releases*
+from the _Actions_ tab of the repository, and tagged releases are published on the _Releases_
 page.
 
-The programs are not signed. Windows shows a *SmartScreen* warning (choose *More info* and *Run
-anyway*), and macOS blocks the first start (open it with a right click and *Open*, or run
+The programs are not signed. Windows shows a _SmartScreen_ warning (choose _More info_ and _Run
+anyway_), and macOS blocks the first start (open it with a right click and _Open_, or run
 `xattr -d com.apple.quarantine fast-diary`).
+
+## Github release
+
+```bash
+git tag -a v0.1.2 -m "v0.1.2"
+git push origin v0.1.2
+```
 
 ## License
 
