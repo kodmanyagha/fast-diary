@@ -16,3 +16,4 @@ pub const FOLDER_OPEN: Selector<()> = Selector::new("folder.open");
 pub const FOLDER_ENCRYPT: Selector<()> = Selector::new("folder.encrypt");
 pub const FOLDER_LOCK: Selector<()> = Selector::new("folder.lock");
 pub const FOLDER_CHANGE_PASSWORD: Selector<()> = Selector::new("folder.change_password");
+pub const EDITOR_CURSOR_LINE_CHANGED: Selector<usize> = Selector::new("editor.cursor_line_changed");

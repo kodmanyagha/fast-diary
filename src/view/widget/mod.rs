@@ -1,4 +1,5 @@
 pub mod calendar;
+pub mod diary_editor;
 pub mod diary_list;
 pub mod icon_button;
 pub mod markdown_preview;

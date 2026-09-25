@@ -436,6 +436,10 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
                     tracing::error!("File create error: {err:#}");
                 }
                 pass_event_to_child = false;
+            } else if cmd.is(druid_selector::EDITOR_CURSOR_LINE_CHANGED) {
+                app_state.editor_cursor_line =
+                    *cmd.get_unchecked(druid_selector::EDITOR_CURSOR_LINE_CHANGED);
+                pass_event_to_child = false;
             }
         }
 

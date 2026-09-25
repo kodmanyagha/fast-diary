@@ -1,0 +1,39 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5B6EF5"/>
+      <stop offset="100%" stop-color="#3B4CD1"/>
+    </linearGradient>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F1F3FA"/>
+    </linearGradient>
+    <linearGradient id="pen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFC94A"/>
+      <stop offset="100%" stop-color="#FF9B3D"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="256" height="256" rx="56" fill="url(#bg)"/>
+
+  <g transform="translate(58,50)">
+    <rect x="0" y="0" width="118" height="150" rx="12" fill="#2F3B9E" opacity="0.35"/>
+    <rect x="6" y="-6" width="118" height="150" rx="12" fill="url(#page)"/>
+
+    <rect x="-2" y="4" width="10" height="138" rx="5" fill="#3B4CD1"/>
+    <circle cx="3" cy="24" r="4.5" fill="#F1F3FA"/>
+    <circle cx="3" cy="54" r="4.5" fill="#F1F3FA"/>
+    <circle cx="3" cy="84" r="4.5" fill="#F1F3FA"/>
+    <circle cx="3" cy="114" r="4.5" fill="#F1F3FA"/>
+
+    <line x1="30" y1="30" x2="98" y2="30" stroke="#C7CCE8" stroke-width="6" stroke-linecap="round"/>
+    <line x1="30" y1="52" x2="98" y2="52" stroke="#C7CCE8" stroke-width="6" stroke-linecap="round"/>
+    <line x1="30" y1="74" x2="78" y2="74" stroke="#C7CCE8" stroke-width="6" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(150,66) rotate(38)">
+    <rect x="-9" y="0" width="18" height="118" rx="9" fill="url(#pen)"/>
+    <rect x="-9" y="0" width="18" height="26" rx="9" fill="#3B4CD1"/>
+    <path d="M -9 118 L 0 145 L 9 118 Z" fill="#4A3B2A"/>
+  </g>
+</svg>

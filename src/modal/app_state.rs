@@ -109,6 +109,7 @@ pub struct AppState {
 
     pub current_diary: CurrentDiary,
     pub txt_diary: String,
+    pub editor_cursor_line: usize,
     pub editor_mode: EditorMode,
     pub language: Language,
 
@@ -136,6 +137,7 @@ impl AppState {
             calendar_month: CalendarMonth::current().shifted(-1),
             current_diary: CurrentDiary::new().with_is_selected(false),
             txt_diary: "".into(),
+            editor_cursor_line: 0,
             editor_mode: EditorMode::default(),
             language: Language::default(),
             window: WindowSettings::default(),

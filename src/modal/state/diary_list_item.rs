@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use chrono::{Local, NaiveDate, NaiveDateTime, Utc};
 use druid::{Data, Lens};
 
 use crate::{modal::diary_datetime::DiaryDate, utils::consts::DEFAULT_DIARY_NAME};
@@ -61,12 +61,13 @@ impl DiaryListItem {
             .with_file_name(file_name.to_string()))
     }
 
-    /// Builds the list item of a diary that is written at 00:00:00 of `date` and stored with
-    /// `file_extension`.
+    /// Builds the list item of a diary that is written on `date` at the current local time and
+    /// stored with `file_extension`.
     pub fn for_day(date: NaiveDate, file_extension: &str) -> Result<Self, String> {
         let file_name = format!(
             "{}.{file_extension}",
-            date.and_time(NaiveTime::MIN).format(DEFAULT_DIARY_NAME)
+            date.and_time(Local::now().time())
+                .format(DEFAULT_DIARY_NAME)
         );
 
         Self::from_file_name(&file_name, String::new())
@@ -110,6 +111,8 @@ impl Default for DiaryListItem {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Timelike;
+
     use super::*;
 
     #[test]
@@ -135,16 +138,18 @@ mod tests {
     }
 
     #[test]
-    fn day_diaries_are_written_at_midnight() -> Result<(), String> {
+    fn day_diaries_are_written_at_the_current_local_time() -> Result<(), String> {
         let day = NaiveDate::from_ymd_opt(2024, 1, 20).ok_or("Invalid date.")?;
+        let expected_time = Local::now().time();
 
         let plain = DiaryListItem::for_day(day, "md")?;
         let encrypted = DiaryListItem::for_day(day, "md.enc")?;
 
-        assert_eq!(plain.file_name, "240120000000.md");
-        assert_eq!(encrypted.file_name, "240120000000.md.enc");
+        assert!(plain.file_name.starts_with("240120"));
+        assert!(plain.file_name.ends_with(".md"));
+        assert!(encrypted.file_name.ends_with(".md.enc"));
         assert_eq!(plain.date.local_date(), day);
-        assert_eq!(plain.date.to_string(), "2024-01-20 00:00:00");
+        assert_eq!(plain.date.local_hour(), expected_time.hour());
         assert_eq!(plain.summary, "");
         Ok(())
     }

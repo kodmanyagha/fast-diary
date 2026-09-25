@@ -1,14 +1,15 @@
 [package]
 name = "fast-diary"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Emir Buğra Köksalan <kodmanyagha@gmail.com>"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/kodmanyagha/fast-diary"
+description = "A simple, fast diary app for writing your daily notes in Markdown."
 
 [dependencies]
 anyhow = "=1.0.104"
-thiserror = "=2.0.20"
+thiserror = "=2.0.21"
 
 druid = { version = "=0.8.3", features = [
   "im",
@@ -76,3 +77,97 @@ opt-level = 3
 
 [profile.dev.package.blake2]
 opt-level = 3
+
+[target."cfg(windows)".build-dependencies]
+winresource = { version = "=0.1.31", default-features = false }
+
+[package.metadata.deb]
+maintainer = "Emir Buğra Köksalan <kodmanyagha@gmail.com>"
+copyright = "2026, Emir Buğra Köksalan"
+license-file = ["LICENSE", "0"]
+extended-description = """\
+Fast Diary is a simple, fast diary app for writing your daily notes in \
+Markdown, with a calendar view, folder-based encryption and a live preview \
+editor."""
+depends = "$auto"
+section = "utils"
+priority = "optional"
+assets = [
+  [
+    "target/release/fast-diary",
+    "usr/bin/",
+    "755",
+  ],
+  [
+    "resources/fast-diary.desktop",
+    "usr/share/applications/",
+    "644",
+  ],
+  [
+    "resources/images/icons/fast-diary-16.png",
+    "usr/share/icons/hicolor/16x16/apps/fast-diary.png",
+    "644",
+  ],
+  [
+    "resources/images/icons/fast-diary-24.png",
+    "usr/share/icons/hicolor/24x24/apps/fast-diary.png",
+    "644",
+  ],
+  [
+    "resources/images/icons/fast-diary-32.png",
+    "usr/share/icons/hicolor/32x32/apps/fast-diary.png",
+    "644",
+  ],
+  [
+    "resources/images/icons/fast-diary-48.png",
+    "usr/share/icons/hicolor/48x48/apps/fast-diary.png",
+    "644",
+  ],
+  [
+    "resources/images/icons/fast-diary-64.png",
+    "usr/share/icons/hicolor/64x64/apps/fast-diary.png",
+    "644",
+  ],
+  [
+    "resources/images/icons/fast-diary-128.png",
+    "usr/share/icons/hicolor/128x128/apps/fast-diary.png",
+    "644",
+  ],
+  [
+    "resources/images/icons/fast-diary-256.png",
+    "usr/share/icons/hicolor/256x256/apps/fast-diary.png",
+    "644",
+  ],
+  [
+    "resources/images/icons/fast-diary-512.png",
+    "usr/share/icons/hicolor/512x512/apps/fast-diary.png",
+    "644",
+  ],
+  [
+    "resources/images/icons/fast-diary.svg",
+    "usr/share/icons/hicolor/scalable/apps/fast-diary.svg",
+    "644",
+  ],
+  [
+    "README.md",
+    "usr/share/doc/fast-diary/README.md",
+    "644",
+  ],
+]
+
+[package.metadata.generate-rpm]
+license = "GPL-3.0-or-later"
+assets = [
+  { source = "target/release/fast-diary", dest = "/usr/bin/fast-diary", mode = "755" },
+  { source = "resources/fast-diary.desktop", dest = "/usr/share/applications/fast-diary.desktop", mode = "644" },
+  { source = "resources/images/icons/fast-diary-16.png", dest = "/usr/share/icons/hicolor/16x16/apps/fast-diary.png", mode = "644" },
+  { source = "resources/images/icons/fast-diary-24.png", dest = "/usr/share/icons/hicolor/24x24/apps/fast-diary.png", mode = "644" },
+  { source = "resources/images/icons/fast-diary-32.png", dest = "/usr/share/icons/hicolor/32x32/apps/fast-diary.png", mode = "644" },
+  { source = "resources/images/icons/fast-diary-48.png", dest = "/usr/share/icons/hicolor/48x48/apps/fast-diary.png", mode = "644" },
+  { source = "resources/images/icons/fast-diary-64.png", dest = "/usr/share/icons/hicolor/64x64/apps/fast-diary.png", mode = "644" },
+  { source = "resources/images/icons/fast-diary-128.png", dest = "/usr/share/icons/hicolor/128x128/apps/fast-diary.png", mode = "644" },
+  { source = "resources/images/icons/fast-diary-256.png", dest = "/usr/share/icons/hicolor/256x256/apps/fast-diary.png", mode = "644" },
+  { source = "resources/images/icons/fast-diary-512.png", dest = "/usr/share/icons/hicolor/512x512/apps/fast-diary.png", mode = "644" },
+  { source = "resources/images/icons/fast-diary.svg", dest = "/usr/share/icons/hicolor/scalable/apps/fast-diary.svg", mode = "644" },
+  { source = "README.md", dest = "/usr/share/doc/fast-diary/README.md", mode = "644", doc = true },
+]

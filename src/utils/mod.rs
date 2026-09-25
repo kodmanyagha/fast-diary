@@ -3,6 +3,7 @@ pub mod diary;
 pub mod display_text;
 pub mod event_sink;
 pub mod get_image;
+pub mod gtk_workarounds;
 pub mod localization;
 pub mod logger;
 pub mod macros;

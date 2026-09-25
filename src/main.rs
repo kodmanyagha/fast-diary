@@ -18,7 +18,10 @@ use fast_diary::{
     modal::{
         app_state::AppState, diary_datetime::DiaryDateTime, state::diary_list_item::DiaryListItem,
     },
-    utils::{event_sink::set_event_sink, logger::init_tracing_subscriber},
+    utils::{
+        event_sink::set_event_sink, gtk_workarounds::disable_ubuntu_global_menu,
+        logger::init_tracing_subscriber,
+    },
     view::window::main::{
         self, main_menu::build_main_menu, main_window_delegate::MainWindowDelegate,
     },
@@ -26,6 +29,8 @@ use fast_diary::{
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    disable_ubuntu_global_menu();
+
     let _ = dotenvy::dotenv().ok();
     init_tracing_subscriber();
 

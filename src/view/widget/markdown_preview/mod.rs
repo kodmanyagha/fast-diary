@@ -6,7 +6,7 @@ use druid::{
     piet::TextStorage,
     text::RichText,
     widget::{LineBreaking, RawLabel, Scroll},
-    BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
+    BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Rect, Size,
     TimerToken, UpdateCtx, Widget, WidgetExt,
 };
 
@@ -18,6 +18,10 @@ const CONTENT_PADDING: (f64, f64) = (12.0, 8.0);
 
 /// How long the text has to stay unchanged before the preview shows it.
 pub const PREVIEW_UPDATE_DELAY: Duration = Duration::from_millis(600);
+
+/// Vertical slack kept around the caret's estimated position when scrolling the preview to
+/// follow it, so the targeted line lands away from the very edge of the viewport.
+const CURSOR_FOLLOW_MARGIN: f64 = 40.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PreviewAction {
@@ -80,6 +84,23 @@ impl MarkdownPreview {
         self.is_render_due = false;
         self.update_timer = TimerToken::INVALID;
     }
+
+    /// Scrolls the enclosing [`Scroll`] so that the area matching the editor's caret line stays
+    /// in view. The source text has no exact line-by-line correspondence with the rendered rich
+    /// text, so the caret's line is only approximated by its ratio through the source text,
+    /// mapped onto the rendered content's height.
+    fn scroll_to_cursor_line(&self, ctx: &mut UpdateCtx, source_text: &str, cursor_line: usize) {
+        let last_line = source_text.lines().count().saturating_sub(1).max(1);
+        let ratio = cursor_line.min(last_line) as f64 / last_line as f64;
+        let target_y = ratio * ctx.size().height;
+
+        ctx.scroll_area_to_view(Rect::new(
+            0.0,
+            (target_y - CURSOR_FOLLOW_MARGIN).max(0.0),
+            1.0,
+            target_y + CURSOR_FOLLOW_MARGIN,
+        ));
+    }
 }
 
 impl Default for MarkdownPreview {
@@ -124,6 +145,10 @@ impl Widget<AppState> for MarkdownPreview {
                 self.update_timer = ctx.request_timer(PREVIEW_UPDATE_DELAY);
             }
             PreviewAction::Nothing => {}
+        }
+
+        if old_data.editor_cursor_line != data.editor_cursor_line {
+            self.scroll_to_cursor_line(ctx, &data.txt_diary, data.editor_cursor_line);
         }
 
         self.label.update(ctx, &previous, &self.rendered, env)

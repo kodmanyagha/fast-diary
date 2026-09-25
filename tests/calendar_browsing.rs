@@ -182,13 +182,13 @@ fn clicking_a_day_opens_the_latest_diary_of_that_day() -> anyhow::Result<()> {
 }
 
 #[test]
-fn clicking_a_day_without_diaries_starts_an_empty_draft_at_midnight() -> anyhow::Result<()> {
+fn clicking_a_day_without_diaries_starts_an_empty_draft_at_the_current_time() -> anyhow::Result<()>
+{
     let folder = tempfile::tempdir()?;
     write_diaries(folder.path(), &DIARIES)?;
     let january_20th = date(2024, 1, 20)?;
     let app_state = app_state_for(folder.path(), january_20th)?;
     let day_center = cell_center(app_state.calendar_month, january_20th)?;
-    let draft_path = folder.path().join("240120000000.md");
 
     calendar_test(app_state, |harness| {
         open_window(harness);
@@ -197,11 +197,10 @@ fn clicking_a_day_without_diaries_starts_an_empty_draft_at_midnight() -> anyhow:
         let current_diary = &harness.data().current_diary;
         assert!(current_diary.is_selected);
         assert!(current_diary.is_draft);
-        assert_eq!(current_diary.diary.file_name, "240120000000.md");
-        assert_eq!(current_diary.diary.date.to_string(), "2024-01-20 00:00:00");
+        assert_eq!(current_diary.diary.date.local_date(), january_20th);
         assert_eq!(harness.data().txt_diary, "");
         assert_eq!(harness.data().diaries.len(), DIARIES.len());
-        assert!(!draft_path.exists());
+        assert!(!folder.path().join(&current_diary.diary.file_name).exists());
     });
     Ok(())
 }
@@ -236,11 +235,12 @@ fn writing_into_a_draft_creates_the_diary_file_of_that_day() -> anyhow::Result<(
     let january_20th = date(2024, 1, 20)?;
     let app_state = app_state_for(folder.path(), january_20th)?;
     let day_center = cell_center(app_state.calendar_month, january_20th)?;
-    let draft_path = folder.path().join("240120000000.md");
 
     calendar_test(app_state, |harness| {
         open_window(harness);
         click(harness, day_center);
+        let file_name = harness.data().current_diary.diary.file_name.clone();
+        let draft_path = folder.path().join(&file_name);
 
         write_text(harness, "hello diary");
         save(harness);
@@ -256,7 +256,7 @@ fn writing_into_a_draft_creates_the_diary_file_of_that_day() -> anyhow::Result<(
                 .data()
                 .diaries
                 .iter()
-                .find(|item| item.file_name == "240120000000.md")
+                .find(|item| item.file_name == file_name)
                 .map(|item| item.summary.as_str()),
             Some("hello diary")
         );
@@ -284,21 +284,23 @@ fn switching_to_another_day_saves_the_written_draft_first() -> anyhow::Result<()
     let app_state = app_state_for(folder.path(), january_20th)?;
     let first_day = cell_center(app_state.calendar_month, january_20th)?;
     let second_day = cell_center(app_state.calendar_month, january_22nd)?;
-    let first_path = folder.path().join("240120000000.md");
-    let second_path = folder.path().join("240122000000.md");
 
     calendar_test(app_state, |harness| {
         open_window(harness);
         click(harness, first_day);
+        let first_name = harness.data().current_diary.diary.file_name.clone();
+        let first_path = folder.path().join(&first_name);
         write_text(harness, "note of the 20th");
         click(harness, second_day);
+        let second_name = harness.data().current_diary.diary.file_name.clone();
+        let second_path = folder.path().join(&second_name);
 
         assert_eq!(
             fs::read_to_string(&first_path).ok().as_deref(),
             Some("note of the 20th")
         );
         assert!(!second_path.exists());
-        assert_eq!(opened_file_name(harness), "240122000000.md");
+        assert_eq!(opened_file_name(harness), second_name);
         assert!(harness.data().current_diary.is_draft);
         assert_eq!(harness.data().txt_diary, "");
     });
@@ -596,16 +598,14 @@ fn creating_twice_in_an_hour_keeps_a_single_new_diary() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// A draft of today is always started at the current time, so it already belongs to "this
+/// hour" and [`druid_selector::CREATE_NEW_DIARY`] finds it open instead of filing it away.
 #[test]
 fn creating_a_diary_keeps_what_was_written_in_the_draft_of_today() -> anyhow::Result<()> {
-    let now = Local::now();
-    let today = now.date_naive();
+    let today = Local::now().date_naive();
     let folder = tempfile::tempdir()?;
     write_diaries(folder.path(), &[("240115090000.md", "old")])?;
     let app_state = app_state_for(folder.path(), date(2024, 1, 15)?)?;
-    let draft_path = folder
-        .path()
-        .join(format!("{}000000.md", today.format("%y%m%d")));
 
     calendar_test(app_state, |harness| {
         open_window(harness);
@@ -614,16 +614,8 @@ fn creating_a_diary_keeps_what_was_written_in_the_draft_of_today() -> anyhow::Re
 
         harness.submit_command(druid_selector::CREATE_NEW_DIARY);
 
-        if now.hour() == 0 {
-            assert!(harness.data().current_diary.is_draft);
-            assert_eq!(harness.data().txt_diary, "draft text");
-        } else {
-            assert_eq!(
-                fs::read_to_string(&draft_path).ok().as_deref(),
-                Some("draft text")
-            );
-            assert!(!harness.data().current_diary.is_draft);
-        }
+        assert!(harness.data().current_diary.is_draft);
+        assert_eq!(harness.data().txt_diary, "draft text");
     });
     Ok(())
 }

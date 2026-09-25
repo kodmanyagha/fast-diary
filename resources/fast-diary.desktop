@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Fast Diary
+Comment=A simple, fast diary app for writing your daily notes in Markdown
+Exec=fast-diary
+Icon=fast-diary
+Terminal=false
+Categories=Office;Utility;
+StartupWMClass=fast-diary
