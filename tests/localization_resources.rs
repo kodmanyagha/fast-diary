@@ -11,8 +11,11 @@ const TRANSLATED_PREFIXES: [&str; 8] = [
     "view-mode-",
     "calendar-",
 ];
-const SOURCES_WITH_TRANSLATED_TEXT: [&str; 9] = [
+const SOURCES_WITH_TRANSLATED_TEXT: [&str; 12] = [
     "src/view/page/main/main_page.rs",
+    "src/view/page/main/confirmation_overlay.rs",
+    "src/view/page/main/recent_folder_context_menu.rs",
+    "src/modal/state/pending_confirmation.rs",
     "src/view/page/settings/settings_page.rs",
     "src/modal/state/diary_view_mode.rs",
     "src/utils/localization.rs",

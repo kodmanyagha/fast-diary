@@ -8,10 +8,14 @@ use im::Vector;
 use zeroize::Zeroize;
 
 use crate::{
+    config::settings::Settings,
     modal::{
         app_state::{AppState, FolderProtection, PasswordChangeForm},
         app_state_utils::diaries_compare_rev,
-        state::{app_pages::AppPages, current_diary::CurrentDiary, diary_list_item::DiaryListItem},
+        state::{
+            app_pages::AppPages, current_diary::CurrentDiary, diary_list_item::DiaryListItem,
+            pending_confirmation::PendingConfirmation,
+        },
     },
     storage::diary_store::DiaryStore,
     utils::diary::summarize,
@@ -103,6 +107,25 @@ pub fn lock_folder(app_state: &mut AppState) {
     app_state.diaries.clear();
     refresh_folder_protection(app_state);
     app_state.page = AppPages::Main;
+}
+
+/// Removes what `confirmation` asks for from the recent folders and unselects the selected
+/// folder when it is no longer listed. Returns the settings that hold the new recent folders.
+pub fn forget_recent_folders(
+    app_state: &mut AppState,
+    confirmation: &PendingConfirmation,
+) -> Settings {
+    let mut settings = Settings::from(&*app_state);
+    match confirmation {
+        PendingConfirmation::RemoveRecentFolder(folder_path) => {
+            settings.remove_recent_folder(folder_path)
+        }
+        PendingConfirmation::ClearRecentFolders => settings.clear_recent_folders(),
+    }
+
+    app_state.recent_folders = settings.recent_folders.iter().cloned().collect();
+    app_state.diary_base_path = app_state.selected_recent_folder().cloned();
+    settings
 }
 
 /// Lists the diaries of `store` with their summaries, newest first. Files that are not
@@ -327,6 +350,60 @@ mod tests {
         assert_eq!(app_state.folder_protection, FolderProtection::Plain);
         assert!(app_state.folder_key.is_none());
         Ok(())
+    }
+
+    fn state_with_recent_folders(selected: &str, recent_folders: &[&str]) -> AppState {
+        let mut app_state = AppState::new();
+        app_state.diary_base_path = Some(selected.to_string());
+        app_state.recent_folders = recent_folders.iter().map(|path| path.to_string()).collect();
+        app_state
+    }
+
+    fn recent_folders_of(app_state: &AppState) -> Vec<&str> {
+        app_state
+            .recent_folders
+            .iter()
+            .map(String::as_str)
+            .collect()
+    }
+
+    #[test]
+    fn removing_the_selected_recent_folder_unselects_it() {
+        let mut app_state = state_with_recent_folders("/b", &["/a", "/b", "/c"]);
+
+        let settings = forget_recent_folders(
+            &mut app_state,
+            &PendingConfirmation::RemoveRecentFolder("/b".to_string()),
+        );
+
+        assert_eq!(recent_folders_of(&app_state), vec!["/a", "/c"]);
+        assert_eq!(settings.recent_folders, vec!["/a", "/c"]);
+        assert_eq!(app_state.diary_base_path, None);
+    }
+
+    #[test]
+    fn removing_another_recent_folder_keeps_the_selection() {
+        let mut app_state = state_with_recent_folders("/b", &["/a", "/b"]);
+
+        forget_recent_folders(
+            &mut app_state,
+            &PendingConfirmation::RemoveRecentFolder("/a".to_string()),
+        );
+
+        assert_eq!(recent_folders_of(&app_state), vec!["/b"]);
+        assert_eq!(app_state.diary_base_path.as_deref(), Some("/b"));
+    }
+
+    #[test]
+    fn clearing_the_recent_folders_unselects_the_folder() {
+        let mut app_state = state_with_recent_folders("/a", &["/a", "/b"]);
+
+        let settings =
+            forget_recent_folders(&mut app_state, &PendingConfirmation::ClearRecentFolders);
+
+        assert!(app_state.recent_folders.is_empty());
+        assert!(settings.recent_folders.is_empty());
+        assert_eq!(app_state.diary_base_path, None);
     }
 
     #[test]

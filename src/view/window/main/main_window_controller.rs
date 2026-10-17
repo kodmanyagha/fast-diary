@@ -3,7 +3,8 @@ use std::time::{Duration, Instant};
 use anyhow::{anyhow, Context};
 use chrono::{Local, NaiveDate, Timelike};
 use druid::{
-    widget::Controller, Command, Env, Event, EventCtx, LifeCycle, LifeCycleCtx, TimerToken, Widget,
+    keyboard_types::Key, widget::Controller, Command, Env, Event, EventCtx, LifeCycle,
+    LifeCycleCtx, TimerToken, Widget,
 };
 
 use crate::{
@@ -23,8 +24,8 @@ use crate::{
 };
 
 use super::main_window_controller_utils::{
-    change_folder_password, encrypt_selected_folder, load_diary_items, lock_folder,
-    open_selected_folder, refresh_folder_protection,
+    change_folder_password, encrypt_selected_folder, forget_recent_folders, load_diary_items,
+    lock_folder, open_selected_folder, refresh_folder_protection,
 };
 
 const AUTOSAVE_INTERVAL: Duration = Duration::from_secs(5);
@@ -329,6 +330,26 @@ impl MainWindowController {
         }
     }
 
+    /// Carries out the removal from the recent folders that the user confirmed and saves the
+    /// recent folders that remain.
+    fn accept_confirmation(app_state: &mut AppState) {
+        if let Some(confirmation) = app_state.pending_confirmation.take() {
+            if let Err(err) = forget_recent_folders(app_state, &confirmation).save() {
+                tracing::error!("Could not save settings: {err:#}");
+            }
+        }
+    }
+
+    /// Answers the pending confirmation from the keyboard: Enter accepts it and Escape
+    /// cancels it.
+    fn handle_confirmation_key(app_state: &mut AppState, key: &Key) {
+        match key {
+            Key::Enter => Self::accept_confirmation(app_state),
+            Key::Escape => app_state.pending_confirmation = None,
+            _ => {}
+        }
+    }
+
     /// Shows the outcome of a folder command to the user.
     fn report_outcome(
         app_state: &mut AppState,
@@ -355,6 +376,13 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
 
         if matches!(event, Event::KeyDown(_) | Event::MouseDown(_)) {
             self.last_activity = Instant::now();
+        }
+
+        if let Event::KeyDown(key_event) = event {
+            if app_state.pending_confirmation.is_some() {
+                Self::handle_confirmation_key(app_state, &key_event.key);
+                pass_event_to_child = false;
+            }
         }
 
         if let Event::WindowSize(_size) = event {
@@ -418,6 +446,9 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
             } else if cmd.is(druid_selector::FOLDER_CHANGE_PASSWORD) {
                 let outcome = change_folder_password(app_state);
                 Self::report_outcome(app_state, outcome, "Password changed.");
+                pass_event_to_child = false;
+            } else if cmd.is(druid_selector::CONFIRMATION_ACCEPT) {
+                Self::accept_confirmation(app_state);
                 pass_event_to_child = false;
             } else if cmd.is(druid::commands::OPEN_FILE) {
                 let cmd_data = cmd.get_unchecked(druid::commands::OPEN_FILE);

@@ -1,16 +1,22 @@
 use druid::{
     widget::{
         Button, CrossAxisAlignment, Either, FillStrat, Flex, Image, Label, LineBreaking, Scroll,
-        SizedBox, Split, ViewSwitcher,
+        SizedBox, Split, ViewSwitcher, ZStack,
     },
     Color, FileDialogOptions, Widget, WidgetExt,
 };
 use druid_widget_nursery::ListSelect;
 
+use super::{
+    confirmation_overlay::confirmation_overlay, recent_folder_context_menu::RecentFolderContextMenu,
+};
 use crate::{
     config::window_settings::MIN_WINDOW_SIZE,
     consts::druid_selector,
-    modal::app_state::{AppState, DiaryBasePathLens, FolderProtection, OpenFilePurpose},
+    modal::{
+        app_state::{AppState, DiaryBasePathLens, FolderProtection, OpenFilePurpose},
+        state::pending_confirmation::PendingConfirmation,
+    },
     utils::{display_text::shorten_in_the_middle, get_image::diary_icon, localization::text},
     vault::password::weak_password_warning,
     view::widget::password_box::password_box,
@@ -108,12 +114,38 @@ fn build_recent_folders_list() -> impl Widget<AppState> {
             Box::new(
                 ListSelect::new(items)
                     .lens(DiaryBasePathLens)
+                    .controller(RecentFolderContextMenu)
                     .expand_width(),
             ) as Box<dyn Widget<AppState>>
         },
     );
 
     Scroll::new(list_select).vertical().expand()
+}
+
+/// Builds the buttons that ask to remove the selected folder from the recent folders or to
+/// clear the whole list. Nothing is removed before the user confirms it.
+fn build_recent_folder_buttons() -> impl Widget<AppState> {
+    let remove_selected_button = Button::new(text("page-login-removeRecentFolder"))
+        .on_click(|_ctx, data: &mut AppState, _| {
+            data.pending_confirmation = data
+                .selected_recent_folder()
+                .cloned()
+                .map(PendingConfirmation::RemoveRecentFolder);
+        })
+        .disabled_if(|data: &AppState, _| data.selected_recent_folder().is_none())
+        .expand_width();
+    let clear_all_button = Button::new(text("page-login-clearRecentFolders"))
+        .on_click(|_ctx, data: &mut AppState, _| {
+            data.pending_confirmation = Some(PendingConfirmation::ClearRecentFolders);
+        })
+        .disabled_if(|data: &AppState, _| data.recent_folders.is_empty())
+        .expand_width();
+
+    Flex::row()
+        .with_flex_child(remove_selected_button, 1.0)
+        .with_default_spacer()
+        .with_flex_child(clear_all_button, 1.0)
 }
 
 /// Returns the options of the dialog that asks for the folder of the diaries.
@@ -156,6 +188,8 @@ fn build_folder_column() -> impl Widget<AppState> {
         .with_child(Label::new(text("page-login-recentFolders")))
         .with_default_spacer()
         .with_flex_child(build_recent_folders_list(), 1.0)
+        .with_default_spacer()
+        .with_child(build_recent_folder_buttons())
         .padding(COLUMN_PADDING)
 }
 
@@ -184,7 +218,7 @@ pub fn build_ui() -> impl Widget<AppState> {
     let label_welcome = Label::new(text("page-login-title"));
     let label_welcome_sub = Label::new(text("page-login-welcomeSub1"));
 
-    Flex::column()
+    let page = Flex::column()
         .with_child(
             Image::new(diary_icon())
                 .fill_mode(FillStrat::Contain)
@@ -212,5 +246,7 @@ pub fn build_ui() -> impl Widget<AppState> {
         )
         .cross_axis_alignment(CrossAxisAlignment::Center)
         .expand_height()
-        .expand_width()
+        .expand_width();
+
+    ZStack::new(page).with_centered_child(confirmation_overlay())
 }

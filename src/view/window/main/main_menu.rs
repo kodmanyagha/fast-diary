@@ -6,7 +6,7 @@ use crate::{
         app_state::{AppState, OpenFilePurpose},
         state::{
             app_pages::AppPages, diary_view_mode::DiaryViewMode, editor_mode::EditorMode,
-            language::Language,
+            language::Language, pending_confirmation::PendingConfirmation,
         },
     },
     utils::localization::text,
@@ -23,6 +23,10 @@ fn is_diary_page(app_state: &AppState) -> bool {
 
 fn has_opened_diary(app_state: &AppState) -> bool {
     is_diary_page(app_state) && app_state.current_diary.is_selected
+}
+
+fn can_clear_recent_folders(app_state: &AppState) -> bool {
+    is_main_page(app_state) && !app_state.recent_folders.is_empty()
 }
 
 fn menu_title(key: &'static str) -> LabelText<AppState> {
@@ -45,6 +49,13 @@ fn build_file_menu() -> Menu<AppState> {
                 })
                 .hotkey(SysMods::Cmd, "o")
                 .enabled_if(|app_state, _env| is_main_page(app_state)),
+        )
+        .entry(
+            MenuItem::new(menu_title("menu-file-clear-recent-folders"))
+                .on_activate(|_ctx, app_state, _env| {
+                    app_state.pending_confirmation = Some(PendingConfirmation::ClearRecentFolders);
+                })
+                .enabled_if(|app_state, _env| can_clear_recent_folders(app_state)),
         )
         .entry(
             MenuItem::new(menu_title("menu-file-save"))
@@ -186,6 +197,18 @@ mod tests {
         assert!(!is_main_page(&state_on(AppPages::Diary, false)));
         assert!(is_diary_page(&state_on(AppPages::Diary, false)));
         assert!(!is_diary_page(&state_on(AppPages::Settings, false)));
+    }
+
+    #[test]
+    fn recent_folders_can_be_cleared_only_on_the_main_page_when_there_are_any() {
+        let mut app_state = state_on(AppPages::Main, false);
+        assert!(!can_clear_recent_folders(&app_state));
+
+        app_state.recent_folders.push_back("/diary".to_string());
+        assert!(can_clear_recent_folders(&app_state));
+
+        app_state.page = AppPages::Diary;
+        assert!(!can_clear_recent_folders(&app_state));
     }
 
     #[test]

@@ -1,5 +1,5 @@
 use std::{
-    fs::{self, File, OpenOptions},
+    fs::{self, OpenOptions},
     io::{self, Write},
     path::{Path, PathBuf},
 };
@@ -45,7 +45,7 @@ fn write_and_sync(path: &Path, content: &[u8]) -> StorageResult<()> {
 fn sync_parent_directory(target: &Path) -> io::Result<()> {
     target
         .parent()
-        .map_or(Ok(()), |parent| File::open(parent)?.sync_all())
+        .map_or(Ok(()), |parent| fs::File::open(parent)?.sync_all())
 }
 
 /// Directory syncing is not supported on this platform, so it is skipped.

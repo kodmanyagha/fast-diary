@@ -7,6 +7,7 @@ use super::state::app_pages::AppPages;
 use super::state::{
     calendar_month::CalendarMonth, current_diary::CurrentDiary, diary_list_item::DiaryListItem,
     diary_view_mode::DiaryViewMode, editor_mode::EditorMode, language::Language,
+    pending_confirmation::PendingConfirmation,
 };
 use crate::{
     config::{layout_settings::LayoutSettings, window_settings::WindowSettings},
@@ -102,6 +103,7 @@ pub struct AppState {
     pub folder_protection: FolderProtection,
     pub folder_key: Option<Arc<FolderKey>>,
     pub recent_folders: Vector<String>,
+    pub pending_confirmation: Option<PendingConfirmation>,
 
     pub diaries: Vector<DiaryListItem>,
     pub diary_view_mode: DiaryViewMode,
@@ -132,6 +134,7 @@ impl AppState {
             open_file_purpose: OpenFilePurpose::DiaryPath,
             diary_base_path: None,
             recent_folders: Vector::new(),
+            pending_confirmation: None,
             diaries: Vector::new(),
             diary_view_mode: DiaryViewMode::default(),
             calendar_month: CalendarMonth::current().shifted(-1),
@@ -163,10 +166,51 @@ impl AppState {
 
         Some(DiaryStore::new(base_path, HistoryPolicy::default(), codec))
     }
+
+    /// Returns the selected folder when it is one of the recent folders.
+    pub fn selected_recent_folder(&self) -> Option<&String> {
+        self.diary_base_path
+            .as_ref()
+            .filter(|folder_path| self.recent_folders.contains(folder_path))
+    }
 }
 
 impl Default for AppState {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn state_with_recent_folders(selected: Option<&str>, recent_folders: &[&str]) -> AppState {
+        let mut app_state = AppState::new();
+        app_state.diary_base_path = selected.map(str::to_string);
+        app_state.recent_folders = recent_folders.iter().map(|path| path.to_string()).collect();
+        app_state
+    }
+
+    #[test]
+    fn the_selected_folder_is_a_recent_folder_when_it_is_listed() {
+        let app_state = state_with_recent_folders(Some("/b"), &["/a", "/b"]);
+
+        assert_eq!(
+            app_state.selected_recent_folder().map(String::as_str),
+            Some("/b")
+        );
+    }
+
+    #[test]
+    fn an_unlisted_or_missing_selection_is_not_a_recent_folder() {
+        assert_eq!(
+            state_with_recent_folders(Some("/c"), &["/a"]).selected_recent_folder(),
+            None
+        );
+        assert_eq!(
+            state_with_recent_folders(None, &["/a"]).selected_recent_folder(),
+            None
+        );
     }
 }

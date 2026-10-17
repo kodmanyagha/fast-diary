@@ -90,6 +90,16 @@ impl Settings {
         self.recent_folders.insert(0, folder_path);
         self.recent_folders.truncate(MAX_RECENT_FOLDERS);
     }
+
+    /// Removes `folder_path` from the recent folders, keeping the order of the others.
+    pub fn remove_recent_folder(&mut self, folder_path: &str) {
+        self.recent_folders.retain(|item| item != folder_path);
+    }
+
+    /// Forgets every recent folder.
+    pub fn clear_recent_folders(&mut self) {
+        self.recent_folders.clear();
+    }
 }
 
 #[cfg(test)]
@@ -152,6 +162,40 @@ mod tests {
         assert!(settings.window.maximized);
         assert_eq!(settings.layout.list_split_percent, 40.0);
         assert_eq!(settings.layout.editor_split_percent, 60.0);
+    }
+
+    fn settings_with_recent_folders(recent_folders: &[&str]) -> Settings {
+        Settings {
+            recent_folders: recent_folders.iter().map(|path| path.to_string()).collect(),
+            ..Settings::default()
+        }
+    }
+
+    #[test]
+    fn removing_a_recent_folder_keeps_the_order_of_the_others() {
+        let mut settings = settings_with_recent_folders(&["/a", "/b", "/c"]);
+
+        settings.remove_recent_folder("/b");
+
+        assert_eq!(settings.recent_folders, vec!["/a", "/c"]);
+    }
+
+    #[test]
+    fn removing_an_unknown_folder_changes_nothing() {
+        let mut settings = settings_with_recent_folders(&["/a", "/b"]);
+
+        settings.remove_recent_folder("/z");
+
+        assert_eq!(settings.recent_folders, vec!["/a", "/b"]);
+    }
+
+    #[test]
+    fn clearing_the_recent_folders_forgets_all_of_them() {
+        let mut settings = settings_with_recent_folders(&["/a", "/b"]);
+
+        settings.clear_recent_folders();
+
+        assert!(settings.recent_folders.is_empty());
     }
 
     #[test]

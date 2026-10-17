@@ -219,10 +219,8 @@ impl Widget<AppState> for CalendarGrid {
                 ctx.submit_command(druid_selector::DIARY_BROWSER_FOCUS);
             }
             LifeCycle::BuildFocusChain => ctx.register_for_focus(),
-            LifeCycle::HotChanged(false) => {
-                if self.hovered_cell.take().is_some() {
-                    ctx.request_paint();
-                }
+            LifeCycle::HotChanged(false) if self.hovered_cell.take().is_some() => {
+                ctx.request_paint();
             }
             LifeCycle::FocusChanged(_) => ctx.request_paint(),
             _ => {}

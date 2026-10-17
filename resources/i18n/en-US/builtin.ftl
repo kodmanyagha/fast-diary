@@ -12,6 +12,12 @@ page-login-enterPassword = Enter Password
 page-login-selectFolder = Select Folder
 page-login-recentFolders = Recent Folders
 page-login-start = Start
+page-login-removeRecentFolder = Remove From List
+page-login-clearRecentFolders = Clear History
+page-login-confirmRemoveRecentFolder = Remove this folder from the recent folders? The folder and its diaries stay on the disk.
+page-login-confirmClearRecentFolders = Clear the whole list of recent folders? No folder is deleted from the disk.
+page-login-confirmOk = OK
+page-login-confirmCancel = Cancel
 
 page-settings-title = Settings
 
@@ -41,6 +47,8 @@ weekday-short-7 = Su
 menu-file = File
 menu-file-new-diary = New Diary
 menu-file-open-folder = Open Folder...
+menu-file-clear-recent-folders = Clear Recent Folders
+menu-recent-folder-remove = Remove From List
 menu-file-save = Save
 menu-file-close-folder = Close Folder
 menu-file-settings = Settings

@@ -135,6 +135,10 @@ fn the_first_text_is_shown_at_once() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "druid's Windows backend hands out no timer tokens without a real window"
+)]
 fn an_edit_is_shown_only_after_the_delay() {
     preview_test(|harness, preview| {
         harness.submit_command(CHANGE_TEXT.with("second".to_string()));
@@ -150,6 +154,10 @@ fn an_edit_is_shown_only_after_the_delay() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "druid's Windows backend hands out no timer tokens without a real window"
+)]
 fn only_the_timer_of_the_last_edit_updates_the_preview() {
     preview_test(|harness, preview| {
         harness.submit_command(CHANGE_TEXT.with("second".to_string()));
