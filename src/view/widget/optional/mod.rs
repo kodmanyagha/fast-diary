@@ -9,7 +9,7 @@ use druid::{
 
 use crate::modal::app_state::AppState;
 use crate::modal::state::editor_mode::EditorMode;
-use crate::utils::localization::month_name;
+use crate::utils::localization::{month_name, text};
 use crate::view::widget::diary_editor::diary_editor;
 use crate::view::widget::markdown_preview::markdown_preview;
 use crate::view::widget::mode_selector::editor_mode_button;
@@ -76,7 +76,7 @@ pub fn optional() -> impl Widget<AppState> {
                         .expand_height(),
                 )
             } else {
-                Box::new(Label::new("Please select a diary").padding(5.0))
+                Box::new(Label::new(text("page-diary-selectDiary")).padding(5.0))
             }
         },
     )

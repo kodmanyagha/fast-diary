@@ -45,7 +45,9 @@ fn build_file_menu() -> Menu<AppState> {
             MenuItem::new(menu_title("menu-file-open-folder"))
                 .on_activate(|ctx, app_state, _env| {
                     app_state.open_file_purpose = OpenFilePurpose::DiaryPath;
-                    ctx.submit_command(commands::SHOW_OPEN_PANEL.with(folder_dialog_options()));
+                    ctx.submit_command(
+                        commands::SHOW_OPEN_PANEL.with(folder_dialog_options(app_state.language)),
+                    );
                 })
                 .hotkey(SysMods::Cmd, "o")
                 .enabled_if(|app_state, _env| is_main_page(app_state)),

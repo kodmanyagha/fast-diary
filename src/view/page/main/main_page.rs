@@ -15,10 +15,13 @@ use crate::{
     consts::druid_selector,
     modal::{
         app_state::{AppState, DiaryBasePathLens, FolderProtection, OpenFilePurpose},
-        state::pending_confirmation::PendingConfirmation,
+        state::{language::Language, pending_confirmation::PendingConfirmation},
     },
-    utils::{display_text::shorten_in_the_middle, get_image::diary_icon, localization::text},
-    vault::password::weak_password_warning,
+    utils::{
+        display_text::shorten_in_the_middle,
+        get_image::diary_icon,
+        localization::{password_weakness_text, text, translate},
+    },
     view::widget::password_box::password_box,
 };
 
@@ -40,17 +43,20 @@ fn is_plain_folder_selected(data: &AppState) -> bool {
 fn build_password_section() -> impl Widget<AppState> {
     let folder_status = Label::dynamic(|data: &AppState, _env| {
         match (&data.diary_base_path, data.folder_protection) {
-            (None, _) => "",
-            (Some(_), FolderProtection::Plain) => "This folder is not encrypted.",
-            (Some(_), FolderProtection::Encrypted) => "This folder is encrypted.",
+            (None, _) => String::new(),
+            (Some(_), FolderProtection::Plain) => {
+                translate(data.language, "page-login-folderNotEncrypted")
+            }
+            (Some(_), FolderProtection::Encrypted) => {
+                translate(data.language, "page-login-folderEncrypted")
+            }
         }
-        .to_string()
     });
 
     let encrypt_section = Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(
-            Label::new("Confirm password (only needed to encrypt this folder)")
+            Label::new(text("page-login-confirmPasswordToEncrypt"))
                 .with_line_break_mode(LineBreaking::WordWrap),
         )
         .with_default_spacer()
@@ -60,16 +66,14 @@ fn build_password_section() -> impl Widget<AppState> {
         .with_default_spacer()
         .with_child(
             Label::dynamic(|data: &AppState, _env| {
-                weak_password_warning(&data.password)
-                    .unwrap_or_default()
-                    .to_string()
+                password_weakness_text(data.language, &data.password)
             })
             .with_text_color(WARNING_COLOR)
             .with_line_break_mode(LineBreaking::WordWrap),
         )
         .with_default_spacer()
         .with_child(
-            Button::new("Encrypt this folder")
+            Button::new(text("page-login-encryptFolder"))
                 .on_click(|ctx, _data: &mut AppState, _| {
                     ctx.submit_command(druid_selector::FOLDER_ENCRYPT)
                 })
@@ -148,21 +152,24 @@ fn build_recent_folder_buttons() -> impl Widget<AppState> {
         .with_flex_child(clear_all_button, 1.0)
 }
 
-/// Returns the options of the dialog that asks for the folder of the diaries.
-pub fn folder_dialog_options() -> FileDialogOptions {
+/// Returns the options of the dialog that asks for the folder of the diaries, with its texts
+/// in `language`.
+pub fn folder_dialog_options(language: Language) -> FileDialogOptions {
     FileDialogOptions::new()
         .select_directories()
         .show_hidden()
-        .name_label("Source")
-        .title("Select a folder")
-        .button_text("Select")
+        .name_label(translate(language, "dialog-folder-source"))
+        .title(translate(language, "dialog-folder-title"))
+        .button_text(translate(language, "dialog-folder-select"))
 }
 
 fn build_select_folder_button() -> impl Widget<AppState> {
     Button::new(text("page-login-selectFolder"))
         .on_click(|ctx, data: &mut AppState, _| {
             data.open_file_purpose = OpenFilePurpose::DiaryPath;
-            ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(folder_dialog_options()))
+            ctx.submit_command(
+                druid::commands::SHOW_OPEN_PANEL.with(folder_dialog_options(data.language)),
+            )
         })
         .expand_width()
 }

@@ -9,8 +9,7 @@ use crate::{
         app_state::{AppState, FolderProtection, PasswordChangeForm},
         state::app_pages::AppPages,
     },
-    utils::localization::text,
-    vault::password::weak_password_warning,
+    utils::localization::{password_weakness_text, text},
     view::widget::password_box::password_box,
 };
 
@@ -22,36 +21,34 @@ const FORM_WIDTH: f64 = 400_f64;
 fn build_change_password_form() -> impl Widget<AppState> {
     Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Start)
-        .with_child(Label::new("Change folder password"))
+        .with_child(Label::new(text("page-settings-changeFolderPassword")))
         .with_default_spacer()
-        .with_child(Label::new("Current password"))
+        .with_child(Label::new(text("page-settings-currentPassword")))
         .with_child(
             password_box(druid_selector::FOLDER_CHANGE_PASSWORD)
                 .lens(AppState::password_change.then(PasswordChangeForm::current_password)),
         )
         .with_default_spacer()
-        .with_child(Label::new("New password"))
+        .with_child(Label::new(text("page-settings-newPassword")))
         .with_child(
             password_box(druid_selector::FOLDER_CHANGE_PASSWORD)
                 .lens(AppState::password_change.then(PasswordChangeForm::new_password)),
         )
         .with_child(
             Label::dynamic(|data: &AppState, _env| {
-                weak_password_warning(&data.password_change.new_password)
-                    .unwrap_or_default()
-                    .to_string()
+                password_weakness_text(data.language, &data.password_change.new_password)
             })
             .with_text_color(WARNING_COLOR),
         )
         .with_default_spacer()
-        .with_child(Label::new("Confirm new password"))
+        .with_child(Label::new(text("page-settings-confirmNewPassword")))
         .with_child(
             password_box(druid_selector::FOLDER_CHANGE_PASSWORD)
                 .lens(AppState::password_change.then(PasswordChangeForm::confirmation)),
         )
         .with_default_spacer()
         .with_child(
-            Button::new("Change password")
+            Button::new(text("page-settings-changePassword"))
                 .on_click(|ctx, _data: &mut AppState, _| {
                     ctx.submit_command(druid_selector::FOLDER_CHANGE_PASSWORD)
                 })
@@ -77,15 +74,15 @@ pub fn build_ui() -> impl Widget<AppState> {
         .with_child(Either::new(
             |data: &AppState, _env| data.folder_protection == FolderProtection::Encrypted,
             build_change_password_form(),
-            Label::new("The selected folder is not encrypted, so it has no password."),
+            Label::new(text("page-settings-folderNotEncrypted")),
         ))
         .with_default_spacer()
-        .with_child(
-            Button::new("Back").on_click(|_ctx, data: &mut AppState, _| {
+        .with_child(Button::new(text("page-settings-back")).on_click(
+            |_ctx, data: &mut AppState, _| {
                 data.status_message.clear();
                 data.page = AppPages::Diary;
-            }),
-        )
+            },
+        ))
         .expand_height()
         .expand_width()
         .padding(Insets::uniform(10.0))

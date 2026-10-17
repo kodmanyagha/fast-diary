@@ -1,7 +1,7 @@
 use std::{collections::BTreeSet, fs, path::PathBuf};
 
 const LOCALES: [&str; 2] = ["en-US", "tr-TR"];
-const TRANSLATED_PREFIXES: [&str; 8] = [
+const TRANSLATED_PREFIXES: [&str; 12] = [
     "page-",
     "app-",
     "month-",
@@ -10,8 +10,12 @@ const TRANSLATED_PREFIXES: [&str; 8] = [
     "about-",
     "view-mode-",
     "calendar-",
+    "dialog-",
+    "password-",
+    "status-",
+    "error-",
 ];
-const SOURCES_WITH_TRANSLATED_TEXT: [&str; 12] = [
+const SOURCES_WITH_TRANSLATED_TEXT: [&str; 15] = [
     "src/view/page/main/main_page.rs",
     "src/view/page/main/confirmation_overlay.rs",
     "src/view/page/main/recent_folder_context_menu.rs",
@@ -24,6 +28,9 @@ const SOURCES_WITH_TRANSLATED_TEXT: [&str; 12] = [
     "src/view/window/main/main_menu.rs",
     "src/view/window/about/about_window.rs",
     "src/view/widget/calendar/mod.rs",
+    "src/view/widget/optional/mod.rs",
+    "src/view/window/main/main_window_controller.rs",
+    "src/view/window/main/user_messages.rs",
 ];
 
 fn project_file(relative_path: &str) -> PathBuf {

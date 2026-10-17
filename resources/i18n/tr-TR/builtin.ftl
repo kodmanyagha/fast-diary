@@ -8,7 +8,15 @@ page-login-enterPassword = Şifre Giriniz
 page-login-recentFolders = Son Kullanılan Klasörler
 
 page-settings-title = Ayarlar
+page-settings-changeFolderPassword = Klasör şifresini değiştir
+page-settings-currentPassword = Mevcut şifre
+page-settings-newPassword = Yeni şifre
+page-settings-confirmNewPassword = Yeni şifreyi tekrar girin
+page-settings-changePassword = Şifreyi değiştir
+page-settings-folderNotEncrypted = Seçili klasör şifreli olmadığı için şifresi yok.
+page-settings-back = Geri
 page-diary-title = Günlüğüm
+page-diary-selectDiary = Lütfen bir günlük seçin
 
 month-1 = Ocak
 month-2 = Şubat
@@ -88,6 +96,10 @@ page-login-confirmRemoveRecentFolder = Bu klasör son kullanılan klasörlerden 
 page-login-confirmClearRecentFolders = Son kullanılan klasörlerin tamamı temizlensin mi? Hiçbir klasör diskten silinmez.
 page-login-confirmOk = Tamam
 page-login-confirmCancel = İptal
+page-login-folderNotEncrypted = Bu klasör şifreli değil.
+page-login-folderEncrypted = Bu klasör şifreli.
+page-login-confirmPasswordToEncrypt = Şifreyi tekrar girin (sadece bu klasörü şifrelemek için gerekir)
+page-login-encryptFolder = Bu klasörü şifrele
 
 about-author = Geliştirici
 about-email = E-posta
@@ -97,3 +109,23 @@ about-support = Projeyi destekle
 about-ethereum = Ethereum
 about-solana = Solana
 about-copy = Kopyala
+
+dialog-folder-title = Bir klasör seçin
+dialog-folder-source = Kaynak
+dialog-folder-select = Seç
+
+password-digitsOnly = Sadece rakamlardan oluşan şifreler kolay tahmin edilir.
+password-shorterThanRecommended = Kısa şifre: { $recommended } veya daha fazla karakter önerilir.
+
+status-passwordChanged = Şifre değiştirildi.
+
+error-noFolderSelected = Lütfen bir klasör seçin.
+error-passwordTooShort = Şifre en az { $minimum } karakter olmalı.
+error-passwordMismatch = Şifreler eşleşmiyor.
+error-wrongPassword = Yanlış şifre.
+error-alreadyEncrypted = Bu klasör zaten şifreli.
+error-keyFileDamaged = Bu klasörün `.encrypted` dosyası bozuk ya da desteklenmiyor.
+error-diaryCorrupted = Şifreli günlük bozuk ya da bu klasörün anahtarıyla şifrelenmemiş.
+error-diariesNotConverted = Klasör artık şifreli, ancak içindeki günlükler dönüştürülemedi.
+error-someDiariesNotConverted = Klasör artık şifreli, ancak { $failed } günlük dönüştürülemedi. Klasörün kilidini tekrar açana kadar düz dosya olarak kalırlar.
+error-unexpected = Beklenmeyen bir hata oluştu: { $details }

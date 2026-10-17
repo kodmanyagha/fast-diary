@@ -1,7 +1,14 @@
 use super::error::{VaultError, VaultResult};
 
 pub const MIN_PASSWORD_LENGTH: usize = 6;
-const RECOMMENDED_PASSWORD_LENGTH: usize = 10;
+pub const RECOMMENDED_PASSWORD_LENGTH: usize = 10;
+
+/// Why an acceptable password is still easy to guess.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PasswordWeakness {
+    DigitsOnly,
+    ShorterThanRecommended,
+}
 
 /// Checks that a new password meets the minimum length and matches its confirmation.
 pub fn validate_new_password(password: &str, confirmation: &str) -> VaultResult<()> {
@@ -16,15 +23,15 @@ pub fn validate_new_password(password: &str, confirmation: &str) -> VaultResult<
         .ok_or(VaultError::PasswordMismatch)
 }
 
-/// Returns a hint when `password` is acceptable but easy to guess, or `None` when it is fine.
-pub fn weak_password_warning(password: &str) -> Option<&'static str> {
+/// Returns why `password` is easy to guess, or `None` when it is empty or fine.
+pub fn password_weakness(password: &str) -> Option<PasswordWeakness> {
     match password.chars().count() {
         0 => None,
         _ if password.chars().all(|character| character.is_ascii_digit()) => {
-            Some("Digits-only passwords are easy to guess.")
+            Some(PasswordWeakness::DigitsOnly)
         }
         length if length < RECOMMENDED_PASSWORD_LENGTH => {
-            Some("Short password: 10 or more characters are recommended.")
+            Some(PasswordWeakness::ShorterThanRecommended)
         }
         _ => None,
     }
@@ -57,9 +64,15 @@ mod tests {
 
     #[test]
     fn warns_about_digit_only_and_short_passwords() {
-        assert_eq!(weak_password_warning(""), None);
-        assert!(weak_password_warning("1234567890123").is_some());
-        assert!(weak_password_warning("abc12def").is_some());
-        assert_eq!(weak_password_warning("a long enough passphrase"), None);
+        assert_eq!(password_weakness(""), None);
+        assert_eq!(
+            password_weakness("1234567890123"),
+            Some(PasswordWeakness::DigitsOnly)
+        );
+        assert_eq!(
+            password_weakness("abc12def"),
+            Some(PasswordWeakness::ShorterThanRecommended)
+        );
+        assert_eq!(password_weakness("a long enough passphrase"), None);
     }
 }

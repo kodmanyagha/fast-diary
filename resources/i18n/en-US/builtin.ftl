@@ -18,10 +18,22 @@ page-login-confirmRemoveRecentFolder = Remove this folder from the recent folder
 page-login-confirmClearRecentFolders = Clear the whole list of recent folders? No folder is deleted from the disk.
 page-login-confirmOk = OK
 page-login-confirmCancel = Cancel
+page-login-folderNotEncrypted = This folder is not encrypted.
+page-login-folderEncrypted = This folder is encrypted.
+page-login-confirmPasswordToEncrypt = Confirm password (only needed to encrypt this folder)
+page-login-encryptFolder = Encrypt this folder
 
 page-settings-title = Settings
+page-settings-changeFolderPassword = Change folder password
+page-settings-currentPassword = Current password
+page-settings-newPassword = New password
+page-settings-confirmNewPassword = Confirm new password
+page-settings-changePassword = Change password
+page-settings-folderNotEncrypted = The selected folder is not encrypted, so it has no password.
+page-settings-back = Back
 
 page-diary-title = My Diary
+page-diary-selectDiary = Please select a diary
 
 month-1 = January
 month-2 = February
@@ -99,3 +111,23 @@ about-support = Support the project
 about-ethereum = Ethereum
 about-solana = Solana
 about-copy = Copy
+
+dialog-folder-title = Select a folder
+dialog-folder-source = Source
+dialog-folder-select = Select
+
+password-digitsOnly = Digits-only passwords are easy to guess.
+password-shorterThanRecommended = Short password: { $recommended } or more characters are recommended.
+
+status-passwordChanged = Password changed.
+
+error-noFolderSelected = Please select a folder.
+error-passwordTooShort = Password must be at least { $minimum } characters long.
+error-passwordMismatch = Passwords do not match.
+error-wrongPassword = Wrong password.
+error-alreadyEncrypted = This folder is already encrypted.
+error-keyFileDamaged = The `.encrypted` file of this folder is damaged or unsupported.
+error-diaryCorrupted = The encrypted diary is damaged or was not encrypted with the key of this folder.
+error-diariesNotConverted = The folder is encrypted now, but its existing diaries could not be converted.
+error-someDiariesNotConverted = The folder is encrypted now, but { $failed } existing diaries could not be converted. They stay as plain files until you unlock the folder again.
+error-unexpected = An unexpected error occurred: { $details }

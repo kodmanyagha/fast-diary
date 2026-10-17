@@ -2,7 +2,10 @@ use std::{collections::HashMap, sync::LazyLock};
 
 use druid::{widget::LabelText, Env};
 
-use crate::modal::{app_state::AppState, state::language::Language};
+use crate::{
+    modal::{app_state::AppState, state::language::Language},
+    vault::password::{password_weakness, PasswordWeakness, RECOMMENDED_PASSWORD_LENGTH},
+};
 
 const MONTH_KEYS: [&str; 12] = [
     "month-1", "month-2", "month-3", "month-4", "month-5", "month-6", "month-7", "month-8",
@@ -65,6 +68,16 @@ pub fn translate(language: Language, key: &str) -> String {
         .map_or_else(|| key.to_string(), |text| text.to_string())
 }
 
+/// Looks `key` up like [`translate`] and replaces each `{ $name }` placeholder of the text with
+/// the value given for `name` in `arguments`.
+pub fn translate_with(language: Language, key: &str, arguments: &[(&str, String)]) -> String {
+    arguments
+        .iter()
+        .fold(translate(language, key), |text, (name, value)| {
+            text.replace(&format!("{{ ${name} }}"), value)
+        })
+}
+
 /// Builds a text that is translated into the language of the app state whenever it is drawn, so
 /// that it changes as soon as another language is chosen.
 pub fn text(key: &'static str) -> LabelText<AppState> {
@@ -74,6 +87,21 @@ pub fn text(key: &'static str) -> LabelText<AppState> {
 fn translate_indexed(language: Language, keys: &[&'static str], index: usize) -> String {
     keys.get(index)
         .map(|key| translate(language, key))
+        .unwrap_or_default()
+}
+
+/// Returns the translated hint that `password` is easy to guess, or nothing when it is empty
+/// or fine.
+pub fn password_weakness_text(language: Language, password: &str) -> String {
+    password_weakness(password)
+        .map(|weakness| match weakness {
+            PasswordWeakness::DigitsOnly => translate(language, "password-digitsOnly"),
+            PasswordWeakness::ShorterThanRecommended => translate_with(
+                language,
+                "password-shorterThanRecommended",
+                &[("recommended", RECOMMENDED_PASSWORD_LENGTH.to_string())],
+            ),
+        })
         .unwrap_or_default()
 }
 
@@ -117,6 +145,36 @@ mod tests {
     #[test]
     fn a_text_that_no_language_has_is_shown_as_its_key() {
         assert_eq!(translate(Language::Turkish, "no-such-text"), "no-such-text");
+    }
+
+    #[test]
+    fn placeholders_are_replaced_with_their_values() {
+        assert_eq!(
+            translate_with(
+                Language::English,
+                "hello-person",
+                &[("name", "Emir".to_string())]
+            ),
+            "Hello, Emir"
+        );
+        assert_eq!(
+            translate_with(Language::Turkish, "hello-person", &[]),
+            "Merhaba, { $name }"
+        );
+    }
+
+    #[test]
+    fn password_hints_are_translated_and_name_the_recommended_length() {
+        assert_eq!(password_weakness_text(Language::Turkish, ""), "");
+        assert_eq!(
+            password_weakness_text(Language::Turkish, "12345678"),
+            translate(Language::Turkish, "password-digitsOnly")
+        );
+        assert!(password_weakness_text(Language::Turkish, "abc12def").contains("10"));
+        assert_eq!(
+            password_weakness_text(Language::English, "a long enough passphrase"),
+            ""
+        );
     }
 
     #[test]

@@ -3,10 +3,10 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::{anyhow, Context};
 use im::Vector;
 use zeroize::Zeroize;
 
+use super::folder_command_error::FolderCommandError;
 use crate::{
     config::settings::Settings,
     modal::{
@@ -69,13 +69,12 @@ pub fn encrypt_selected_folder(app_state: &mut AppState) -> anyhow::Result<()> {
     clear_typed_passwords(app_state);
 
     let report = encrypt_plain_diaries(&folder, &folder_key)
-        .context("The folder is encrypted now, but its existing diaries could not be converted")?;
+        .map_err(FolderCommandError::DiariesNotConverted)?;
     if report.failed > 0 {
-        return Err(anyhow!(
-            "The folder is encrypted now, but {} existing diaries could not be converted. \
-             They stay as plain files until you unlock the folder again.",
-            report.failed
-        ));
+        return Err(FolderCommandError::SomeDiariesNotConverted {
+            failed: report.failed,
+        }
+        .into());
     }
 
     app_state.folder_key = Some(Arc::new(folder_key));
@@ -154,12 +153,12 @@ fn load_diary_item(store: &DiaryStore, file_name: &str) -> Option<DiaryListItem>
 }
 
 /// Returns the selected folder or an error telling the user to select one.
-fn selected_folder(app_state: &AppState) -> anyhow::Result<PathBuf> {
+fn selected_folder(app_state: &AppState) -> Result<PathBuf, FolderCommandError> {
     app_state
         .diary_base_path
         .as_ref()
         .map(PathBuf::from)
-        .ok_or_else(|| anyhow!("Please select a folder."))
+        .ok_or(FolderCommandError::NoFolderSelected)
 }
 
 /// Clears the passwords the user typed on any page.
@@ -195,6 +194,8 @@ fn log_migration(folder: &Path, folder_key: &FolderKey) {
 #[cfg(test)]
 mod tests {
     use std::fs;
+
+    use anyhow::anyhow;
 
     use super::*;
 

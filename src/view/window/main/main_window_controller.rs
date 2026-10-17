@@ -19,7 +19,7 @@ use crate::{
         },
     },
     storage::diary_store::DiaryStore,
-    utils::{consts::DEFAULT_DIARY_NAME, diary::summarize},
+    utils::{consts::DEFAULT_DIARY_NAME, diary::summarize, localization::translate},
     view::window::about::about_window::build_about_window,
 };
 
@@ -27,6 +27,7 @@ use super::main_window_controller_utils::{
     change_folder_password, encrypt_selected_folder, forget_recent_folders, load_diary_items,
     lock_folder, open_selected_folder, refresh_folder_protection,
 };
+use super::user_messages::error_message;
 
 const AUTOSAVE_INTERVAL: Duration = Duration::from_secs(5);
 const AUTO_LOCK_AFTER: Duration = Duration::from_secs(10 * 60);
@@ -350,15 +351,18 @@ impl MainWindowController {
         }
     }
 
-    /// Shows the outcome of a folder command to the user.
+    /// Shows the outcome of a folder command to the user, in the language of the app. A
+    /// success shows the text of `success_key`, or nothing when there is no such key.
     fn report_outcome(
         app_state: &mut AppState,
         outcome: anyhow::Result<()>,
-        success_message: &str,
+        success_key: Option<&str>,
     ) {
         app_state.status_message = match outcome {
-            Ok(()) => success_message.to_string(),
-            Err(err) => format!("{err:#}"),
+            Ok(()) => success_key
+                .map(|key| translate(app_state.language, key))
+                .unwrap_or_default(),
+            Err(err) => error_message(app_state.language, &err),
         };
     }
 }
@@ -415,7 +419,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
                 let date = *cmd.get_unchecked(druid_selector::DIARY_START_DRAFT);
                 if let Err(err) = self.handle_diary_start_draft(app_state, date) {
                     tracing::error!("Error on DIARY_START_DRAFT: {err:#}");
-                    app_state.status_message = format!("{err:#}");
+                    app_state.status_message = error_message(app_state.language, &err);
                 }
                 pass_event_to_child = false;
             } else if cmd.is(druid_selector::DIARY_SAVE_CURRENT) {
@@ -433,19 +437,19 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
                 pass_event_to_child = false;
             } else if cmd.is(druid_selector::FOLDER_OPEN) {
                 let outcome = open_selected_folder(app_state);
-                Self::report_outcome(app_state, outcome, "");
+                Self::report_outcome(app_state, outcome, None);
                 pass_event_to_child = false;
             } else if cmd.is(druid_selector::FOLDER_ENCRYPT) {
                 let outcome = encrypt_selected_folder(app_state);
-                Self::report_outcome(app_state, outcome, "");
+                Self::report_outcome(app_state, outcome, None);
                 pass_event_to_child = false;
             } else if cmd.is(druid_selector::FOLDER_LOCK) {
                 let outcome = self.save_then_lock(app_state);
-                Self::report_outcome(app_state, outcome, "");
+                Self::report_outcome(app_state, outcome, None);
                 pass_event_to_child = false;
             } else if cmd.is(druid_selector::FOLDER_CHANGE_PASSWORD) {
                 let outcome = change_folder_password(app_state);
-                Self::report_outcome(app_state, outcome, "Password changed.");
+                Self::report_outcome(app_state, outcome, Some("status-passwordChanged"));
                 pass_event_to_child = false;
             } else if cmd.is(druid_selector::CONFIRMATION_ACCEPT) {
                 Self::accept_confirmation(app_state);
