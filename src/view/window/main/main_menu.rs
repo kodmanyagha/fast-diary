@@ -95,6 +95,9 @@ fn build_edit_menu() -> Menu<AppState> {
     };
 
     Menu::new(menu_title("menu-edit"))
+        .entry(edit_item("menu-edit-undo", commands::UNDO).hotkey(SysMods::Cmd, "z"))
+        .entry(edit_item("menu-edit-redo", commands::REDO).hotkey(SysMods::CmdShift, "Z"))
+        .separator()
         .entry(edit_item("menu-edit-cut", commands::CUT))
         .entry(edit_item("menu-edit-copy", commands::COPY))
         .entry(edit_item("menu-edit-paste", commands::PASTE))

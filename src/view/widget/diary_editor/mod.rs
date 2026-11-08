@@ -1,4 +1,10 @@
+mod undo_history;
+
+use std::time::Instant;
+
 use druid::{
+    commands,
+    text::Selection,
     theme,
     widget::{Scroll, TextBox},
     BoxConstraints, Code, Command, Data, Env, Event, EventCtx, Insets, LayoutCtx, LifeCycle,
@@ -7,6 +13,8 @@ use druid::{
 };
 
 use crate::consts::druid_selector;
+
+use self::undo_history::{EditKind, EditorSnapshot, UndoHistory};
 
 const FOLLOW_CARET: Selector<()> = Selector::new("diary_editor.follow_caret");
 
@@ -25,10 +33,15 @@ fn line_at(text: &str, offset: usize) -> usize {
 ///
 /// druid's own [`TextBox`] scrolling measures the caret without the text insets and without any
 /// vertical margin, so the line being typed ends up partly hidden under the bottom edge.
+///
+/// druid's [`TextBox`] also keeps no edit history, so the editor records its own and answers the
+/// undo and redo commands the text box sends for Ctrl+Z and Ctrl+Shift+Z.
 pub struct DiaryEditor {
     text_box: TextBox<String>,
     is_caret_follow_due: bool,
     last_reported_cursor_line: Option<usize>,
+    undo_history: UndoHistory,
+    last_known_state: Option<EditorSnapshot>,
 }
 
 impl DiaryEditor {
@@ -37,6 +50,84 @@ impl DiaryEditor {
             text_box: TextBox::multiline().with_line_wrapping(true),
             is_caret_follow_due: false,
             last_reported_cursor_line: None,
+            undo_history: UndoHistory::default(),
+            last_known_state: None,
+        }
+    }
+
+    /// Returns the current selection, or a caret at the end of `text` while the input method
+    /// holds the text.
+    fn selection_or_end(&self, text: &str) -> Selection {
+        let text_component = self.text_box.text();
+        if text_component.can_read() {
+            text_component.borrow().selection()
+        } else {
+            Selection::caret(text.len())
+        }
+    }
+
+    /// Captures the text and the selection as they are now.
+    fn snapshot_of(&self, text: &str) -> EditorSnapshot {
+        EditorSnapshot::new(text, self.selection_or_end(text))
+    }
+
+    /// Records the change from the last known state to `data` as an undo step, if the text
+    /// changed, and remembers `data` as the new known state.
+    fn record_edit(&mut self, data: &str) {
+        let current = self.snapshot_of(data);
+        if let Some(before) = self.last_known_state.take() {
+            if before.text != current.text {
+                let kind = EditKind::between(&before.text, &current.text);
+                self.undo_history.record(before, kind, Instant::now());
+            }
+        }
+        self.last_known_state = Some(current);
+    }
+
+    /// Forgets the history when the text was replaced from outside the editor, such as when
+    /// another diary is opened.
+    fn forget_history_if_replaced(&mut self, data: &str) {
+        let is_replaced = self
+            .last_known_state
+            .as_ref()
+            .is_none_or(|known| known.text != data);
+        if is_replaced {
+            self.undo_history.clear();
+            self.last_known_state = Some(self.snapshot_of(data));
+        }
+    }
+
+    /// Shows `snapshot` in the editor, placing the selection where it was at that time.
+    fn restore(&mut self, ctx: &mut EventCtx, data: &mut String, snapshot: EditorSnapshot) {
+        data.clone_from(&snapshot.text);
+        let text_component = self.text_box.text_mut();
+        if text_component.can_write() {
+            if let Some(invalidation) = text_component
+                .borrow_mut()
+                .set_selection(snapshot.selection)
+            {
+                ctx.invalidate_text_input(invalidation);
+            }
+        }
+        self.last_known_state = Some(snapshot);
+        self.schedule_caret_follow();
+        ctx.request_layout();
+    }
+
+    /// Undoes or redoes one step, depending on `is_redo`. Does nothing while the input method
+    /// is composing text or there is no step to go to.
+    fn step_through_history(&mut self, ctx: &mut EventCtx, data: &mut String, is_redo: bool) {
+        if self.text_box.text().is_composing() {
+            return;
+        }
+        let current = self.snapshot_of(data);
+        let target = if is_redo {
+            self.undo_history.redo(current)
+        } else {
+            self.undo_history.undo(current)
+        };
+        if let Some(snapshot) = target {
+            self.restore(ctx, data, snapshot);
         }
     }
 
@@ -99,6 +190,24 @@ impl Widget<String> for DiaryEditor {
                 ctx.set_handled();
                 return;
             }
+            Event::Command(cmd)
+                if (cmd.is(commands::UNDO) || cmd.is(commands::REDO)) && ctx.has_focus() =>
+            {
+                self.forget_history_if_replaced(data);
+                self.step_through_history(ctx, data, cmd.is(commands::REDO));
+                ctx.set_handled();
+                self.report_cursor_line(ctx, data);
+                return;
+            }
+            Event::KeyDown(key)
+                if key.code == Code::KeyY && key.mods.contains(Modifiers::CONTROL) =>
+            {
+                self.forget_history_if_replaced(data);
+                self.step_through_history(ctx, data, true);
+                ctx.set_handled();
+                self.report_cursor_line(ctx, data);
+                return;
+            }
             Event::KeyUp(key)
                 if key.code == Code::KeyS && key.mods.contains(Modifiers::CONTROL) =>
             {
@@ -111,8 +220,10 @@ impl Widget<String> for DiaryEditor {
             _ => {}
         }
 
+        self.forget_history_if_replaced(data);
         let caret_before = self.caret();
         self.text_box.event(ctx, event, data, env);
+        self.record_edit(data);
         if self.caret() != caret_before {
             self.schedule_caret_follow();
             ctx.request_layout();
@@ -132,6 +243,7 @@ impl Widget<String> for DiaryEditor {
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &String, data: &String, env: &Env) {
         self.text_box.update(ctx, old_data, data, env);
+        self.forget_history_if_replaced(data);
 
         if !old_data.same(data) {
             self.schedule_caret_follow();
