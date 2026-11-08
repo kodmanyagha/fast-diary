@@ -35,10 +35,27 @@ pub struct StyledSpan {
 }
 
 /// Plain text of a rendered markdown document together with the styled ranges inside it.
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct RenderedMarkdown {
     pub text: String,
     pub spans: Vec<StyledSpan>,
+}
+
+/// One piece of a rendered markdown document, shown below the piece before it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PreviewBlock {
+    Text(RenderedMarkdown),
+    Image {
+        reference: String,
+        description: String,
+    },
+}
+
+/// The image whose description is being read, until its end tag is reached.
+#[derive(Debug, Default)]
+struct PendingImage {
+    reference: String,
+    description: String,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -53,15 +70,28 @@ struct Renderer {
     spans: Vec<StyledSpan>,
     open_spans: Vec<(usize, SpanStyle)>,
     lists: Vec<ListKind>,
+    blocks: Vec<PreviewBlock>,
+    pending_image: Option<PendingImage>,
+    is_right_after_image: bool,
 }
 
 impl Renderer {
     fn accept(mut self, event: Event<'_>) -> Self {
+        if let Some(pending_image) = self.pending_image.as_mut() {
+            match event {
+                Event::End(TagEnd::Image) => self.finish_image(),
+                Event::Text(text) | Event::Code(text) => pending_image.description.push_str(&text),
+                _ => {}
+            }
+            return self;
+        }
+
         match event {
+            Event::Start(Tag::Image { dest_url, .. }) => self.start_image(&dest_url),
             Event::Start(tag) => self.start(&tag),
             Event::End(tag_end) => self.end(&tag_end),
             Event::Text(text) | Event::Html(text) | Event::InlineHtml(text) => {
-                self.text.push_str(&text)
+                self.push_text(&text)
             }
             Event::Code(code) => self.push_styled(&code, SpanStyle::InlineCode),
             Event::SoftBreak | Event::HardBreak => self.text.push('\n'),
@@ -106,6 +136,66 @@ impl Renderer {
             | TagEnd::CodeBlock
             | TagEnd::HtmlBlock => self.end_block(),
             _ => {}
+        }
+    }
+
+    /// Adds `text` to the current block. Text that goes on right after an image starts a new
+    /// block, so the space that separated it from the image is dropped.
+    fn push_text(&mut self, text: &str) {
+        let continues_after_image = self.is_right_after_image && self.text.is_empty();
+        self.text.push_str(if continues_after_image {
+            text.trim_start()
+        } else {
+            text
+        });
+        self.is_right_after_image = false;
+    }
+
+    /// Ends the text read so far as a block of its own, so that the image starting here is
+    /// shown below it. Styles that are still open go on in the text after the image.
+    fn start_image(&mut self, reference: &str) {
+        self.flush_text();
+        self.pending_image = Some(PendingImage {
+            reference: reference.to_string(),
+            description: String::new(),
+        });
+    }
+
+    fn finish_image(&mut self) {
+        if let Some(PendingImage {
+            reference,
+            description,
+        }) = self.pending_image.take()
+        {
+            self.blocks.push(PreviewBlock::Image {
+                reference,
+                description,
+            });
+            self.is_right_after_image = true;
+        }
+    }
+
+    /// Moves the text read so far into a block, unless it is blank.
+    fn flush_text(&mut self) {
+        let text_length = self.text.len();
+        let still_open = self.open_spans.clone();
+        still_open.iter().for_each(|(start, style)| {
+            self.spans.push(StyledSpan {
+                range: *start..text_length,
+                style: *style,
+            })
+        });
+        self.open_spans = still_open
+            .into_iter()
+            .map(|(_, style)| (0, style))
+            .collect();
+
+        let flushed = finish_text(
+            std::mem::take(&mut self.text),
+            std::mem::take(&mut self.spans),
+        );
+        if !flushed.text.is_empty() {
+            self.blocks.push(PreviewBlock::Text(flushed));
         }
     }
 
@@ -186,26 +276,38 @@ impl Renderer {
             .push_str(&"\n".repeat(wanted.saturating_sub(existing)));
     }
 
-    fn finish(mut self) -> RenderedMarkdown {
-        self.text.truncate(self.text.trim_end().len());
-        let text_length = self.text.len();
-
-        let mut spans = self
-            .spans
-            .into_iter()
-            .map(|span| StyledSpan {
-                range: span.range.start.min(text_length)..span.range.end.min(text_length),
-                style: span.style,
-            })
-            .filter(|span| !span.range.is_empty())
-            .collect::<Vec<_>>();
-        spans.sort_by_key(|span| (span.range.start, std::cmp::Reverse(span.range.end)));
-
-        RenderedMarkdown {
-            text: self.text,
-            spans,
-        }
+    fn finish(mut self) -> Vec<PreviewBlock> {
+        self.finish_image();
+        self.open_spans.clear();
+        self.flush_text();
+        self.blocks
     }
+}
+
+/// Trims the blank lines around `text` and fits `spans` into what is left.
+fn finish_text(text: String, spans: Vec<StyledSpan>) -> RenderedMarkdown {
+    let leading_newlines = text.len() - text.trim_start_matches('\n').len();
+    let kept = text
+        .get(leading_newlines..)
+        .map(str::trim_end)
+        .unwrap_or_default()
+        .to_string();
+    let kept_length = kept.len();
+
+    let mut spans = spans
+        .into_iter()
+        .map(|span| {
+            let shift = |offset: usize| offset.saturating_sub(leading_newlines).min(kept_length);
+            StyledSpan {
+                range: shift(span.range.start)..shift(span.range.end),
+                style: span.style,
+            }
+        })
+        .filter(|span| !span.range.is_empty())
+        .collect::<Vec<_>>();
+    spans.sort_by_key(|span| (span.range.start, std::cmp::Reverse(span.range.end)));
+
+    RenderedMarkdown { text: kept, spans }
 }
 
 fn span_style(tag: &Tag<'_>) -> Option<SpanStyle> {
@@ -216,7 +318,7 @@ fn span_style(tag: &Tag<'_>) -> Option<SpanStyle> {
         Tag::Emphasis => Some(SpanStyle::Emphasis),
         Tag::Strong => Some(SpanStyle::Strong),
         Tag::Strikethrough => Some(SpanStyle::Strikethrough),
-        Tag::Link { .. } | Tag::Image { .. } => Some(SpanStyle::Link),
+        Tag::Link { .. } => Some(SpanStyle::Link),
         _ => None,
     }
 }
@@ -231,7 +333,6 @@ fn closes_span(tag_end: &TagEnd) -> bool {
             | TagEnd::Strong
             | TagEnd::Strikethrough
             | TagEnd::Link
-            | TagEnd::Image
     )
 }
 
@@ -276,8 +377,9 @@ fn apply_style(style: SpanStyle, attributes: &mut AttributesAdder<'_>) {
     }
 }
 
-/// Parses `source` as markdown into plain text plus the ranges that need styling.
-pub fn render_markdown(source: &str) -> RenderedMarkdown {
+/// Parses `source` as markdown into blocks of plain text, with the ranges that need styling,
+/// and the images between them.
+pub fn render_markdown(source: &str) -> Vec<PreviewBlock> {
     Parser::new_ext(
         source,
         Options::ENABLE_STRIKETHROUGH | Options::ENABLE_TASKLISTS,
@@ -286,9 +388,22 @@ pub fn render_markdown(source: &str) -> RenderedMarkdown {
     .finish()
 }
 
-/// Converts `source` from markdown into styled text that a label can display.
-pub fn markdown_to_rich_text(source: &str) -> RichText {
-    let rendered = render_markdown(source);
+/// Builds the line that stands in for an image that cannot be shown.
+pub fn missing_image_text(reference: &str, description: &str) -> RenderedMarkdown {
+    let text = match description.trim() {
+        "" => format!("[{reference}]"),
+        description => format!("[{description}: {reference}]"),
+    };
+    let spans = vec![StyledSpan {
+        range: 0..text.len(),
+        style: SpanStyle::BlockQuote,
+    }];
+
+    RenderedMarkdown { text, spans }
+}
+
+/// Converts a rendered block of text into styled text that a label can display.
+pub fn markdown_to_rich_text(rendered: &RenderedMarkdown) -> RichText {
     let mut builder = RichTextBuilder::new();
 
     builder.push(&rendered.text);
@@ -308,12 +423,19 @@ mod tests {
 
     use super::*;
 
+    fn text_block_of(source: &str) -> RenderedMarkdown {
+        match render_markdown(source).as_slice() {
+            [PreviewBlock::Text(rendered)] => rendered.clone(),
+            _ => RenderedMarkdown::default(),
+        }
+    }
+
     fn text_of(source: &str) -> String {
-        render_markdown(source).text
+        text_block_of(source).text
     }
 
     fn styles_over(source: &str) -> Vec<(String, SpanStyle)> {
-        let rendered = render_markdown(source);
+        let rendered = text_block_of(source);
 
         rendered
             .spans
@@ -435,8 +557,8 @@ mod tests {
 
     #[test]
     fn empty_and_blank_sources_render_nothing() {
-        assert_eq!(render_markdown(""), RenderedMarkdown::default());
-        assert_eq!(render_markdown("\n\n  \n"), RenderedMarkdown::default());
+        assert_eq!(render_markdown(""), Vec::new());
+        assert_eq!(render_markdown("\n\n  \n"), Vec::new());
     }
 
     #[test]
@@ -446,6 +568,72 @@ mod tests {
 
     #[test]
     fn rich_text_holds_the_rendered_text() {
-        assert_eq!(markdown_to_rich_text("# Hi\n\n- a").as_str(), "Hi\n\n• a");
+        assert_eq!(
+            markdown_to_rich_text(&text_block_of("# Hi\n\n- a")).as_str(),
+            "Hi\n\n• a"
+        );
+    }
+
+    fn image(reference: &str, description: &str) -> PreviewBlock {
+        PreviewBlock::Image {
+            reference: reference.to_string(),
+            description: description.to_string(),
+        }
+    }
+
+    fn text_block(text: &str) -> PreviewBlock {
+        PreviewBlock::Text(RenderedMarkdown {
+            text: text.to_string(),
+            spans: Vec::new(),
+        })
+    }
+
+    #[test]
+    fn an_image_on_its_own_line_splits_the_text_around_it() {
+        assert_eq!(
+            render_markdown("before\n![Sea view](assets/1/sea.png)\nafter"),
+            vec![
+                text_block("before"),
+                image("assets/1/sea.png", "Sea view"),
+                text_block("after"),
+            ]
+        );
+    }
+
+    #[test]
+    fn an_image_alone_is_a_single_block() {
+        assert_eq!(render_markdown("![](a.png)"), vec![image("a.png", "")]);
+    }
+
+    #[test]
+    fn styled_text_around_an_image_keeps_its_style() {
+        let blocks = render_markdown("**bold ![x](a.png) still bold**");
+
+        let styles = blocks
+            .iter()
+            .filter_map(|block| match block {
+                PreviewBlock::Text(rendered) => Some(
+                    rendered
+                        .spans
+                        .iter()
+                        .map(|span| (rendered.text[span.range.clone()].to_string(), span.style))
+                        .collect::<Vec<_>>(),
+                ),
+                PreviewBlock::Image { .. } => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            styles,
+            vec![
+                vec![("bold".to_string(), SpanStyle::Strong)],
+                vec![("still bold".to_string(), SpanStyle::Strong)],
+            ]
+        );
+    }
+
+    #[test]
+    fn a_missing_image_shows_its_description_and_reference() {
+        assert_eq!(missing_image_text("a.png", " Sea ").text, "[Sea: a.png]");
+        assert_eq!(missing_image_text("a.png", "").text, "[a.png]");
     }
 }

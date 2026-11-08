@@ -2,7 +2,9 @@ use std::error::Error;
 
 use super::folder_command_error::FolderCommandError;
 use crate::{
+    clipboard::error::ClipboardError,
     modal::state::language::Language,
+    storage::error::StorageError,
     utils::localization::{translate, translate_with},
     vault::error::VaultError,
 };
@@ -32,11 +34,34 @@ fn known_error_message(language: Language, cause: &(dyn Error + 'static)) -> Opt
                 .downcast_ref::<VaultError>()
                 .and_then(|error| vault_error_message(language, error))
         })
+        .or_else(|| {
+            cause
+                .downcast_ref::<StorageError>()
+                .and_then(|error| storage_error_message(language, error))
+        })
+        .or_else(|| {
+            cause
+                .downcast_ref::<ClipboardError>()
+                .map(|_| translate(language, "error-clipboardImageUnreadable"))
+        })
+}
+
+fn storage_error_message(language: Language, error: &StorageError) -> Option<String> {
+    match error {
+        StorageError::UnsupportedImage(_) => Some(translate(language, "error-imageNotSupported")),
+        StorageError::ImageTooLarge { limit, .. } => Some(translate_with(
+            language,
+            "error-imageTooLarge",
+            &[("megabytes", (limit / (1024 * 1024)).to_string())],
+        )),
+        _ => None,
+    }
 }
 
 fn folder_command_error_message(language: Language, error: &FolderCommandError) -> String {
     match error {
         FolderCommandError::NoFolderSelected => translate(language, "error-noFolderSelected"),
+        FolderCommandError::NoDiaryOpened => translate(language, "error-noDiaryOpened"),
         FolderCommandError::DiariesNotConverted(_) => {
             translate(language, "error-diariesNotConverted")
         }
@@ -110,6 +135,17 @@ mod tests {
         assert_eq!(
             error,
             Some(translate(Language::English, "error-passwordMismatch"))
+        );
+    }
+
+    #[test]
+    fn an_image_that_cannot_be_shown_is_explained() {
+        let error = anyhow::Error::from(StorageError::UnsupportedImage("a.txt".into()))
+            .context("Could not copy the image");
+
+        assert_eq!(
+            error_message(Language::English, &error),
+            translate(Language::English, "error-imageNotSupported")
         );
     }
 

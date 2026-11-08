@@ -9,6 +9,7 @@ use super::error::{StorageError, StorageResult};
 
 const PLAIN_EXTENSION: &str = "md";
 const ENCRYPTED_EXTENSION: &str = "md.enc";
+const ENCRYPTED_SUFFIX: &str = ".enc";
 
 #[derive(Debug, Clone)]
 pub enum Codec {
@@ -36,35 +37,57 @@ impl Codec {
             }
     }
 
+    /// Returns the name that the asset `file_name` has on disk in this codec. Encrypted assets
+    /// carry an extra `.enc`, so that they are never mistaken for readable files.
+    pub fn asset_disk_name(&self, file_name: &str) -> String {
+        match self {
+            Self::Plain => file_name.to_string(),
+            Self::Encrypted(_) => format!("{file_name}{ENCRYPTED_SUFFIX}"),
+        }
+    }
+
     /// Converts diary text into the bytes stored on disk at `path`.
     pub fn encode(&self, path: &Path, text: &str) -> StorageResult<Vec<u8>> {
-        match self {
-            Self::Plain => Ok(text.as_bytes().to_vec()),
-            Self::Encrypted(key) => encrypt_file(key, &file_name_of(path), text.as_bytes())
-                .map_err(|source| StorageError::Cipher {
-                    path: path.to_path_buf(),
-                    source,
-                }),
-        }
+        self.encode_bytes(path, text.as_bytes())
     }
 
     /// Converts the bytes stored on disk at `path` back into diary text.
     pub fn decode(&self, path: &Path, content: &[u8]) -> StorageResult<String> {
-        let plaintext = match self {
-            Self::Plain => content.to_vec(),
+        String::from_utf8(self.decode_bytes(path, content)?).map_err(|_| {
+            StorageError::InvalidUtf8 {
+                path: path.to_path_buf(),
+            }
+        })
+    }
+
+    /// Converts any content into the bytes stored on disk at `path`.
+    pub fn encode_bytes(&self, path: &Path, content: &[u8]) -> StorageResult<Vec<u8>> {
+        match self {
+            Self::Plain => Ok(content.to_vec()),
             Self::Encrypted(key) => {
-                decrypt_file(key, &file_name_of(path), content).map_err(|source| {
+                encrypt_file(key, &file_name_of(path), content).map_err(|source| {
                     StorageError::Cipher {
                         path: path.to_path_buf(),
                         source,
                     }
-                })?
+                })
             }
-        };
+        }
+    }
 
-        String::from_utf8(plaintext).map_err(|_| StorageError::InvalidUtf8 {
-            path: path.to_path_buf(),
-        })
+    /// Converts the bytes stored on disk at `path` back into the content they were made from.
+    pub fn decode_bytes(&self, path: &Path, stored: &[u8]) -> StorageResult<Vec<u8>> {
+        match self {
+            Self::Plain => Ok(stored.to_vec()),
+            Self::Encrypted(key) => {
+                decrypt_file(key, &file_name_of(path), stored).map_err(|source| {
+                    StorageError::Cipher {
+                        path: path.to_path_buf(),
+                        source,
+                    }
+                })
+            }
+        }
     }
 }
 
@@ -112,6 +135,27 @@ mod tests {
             encrypted_codec()?.decode(Path::new("/d/a.md.enc"), b"plain text"),
             Err(StorageError::Cipher { .. })
         ));
+        Ok(())
+    }
+
+    #[test]
+    fn bytes_that_are_not_text_round_trip_in_both_codecs() -> anyhow::Result<()> {
+        let path = Path::new("/d/assets/2511/a.png.enc");
+        let binary = [0x89, b'P', b'N', b'G', 0xff, 0x00, 0xfe];
+
+        [Codec::Plain, encrypted_codec()?]
+            .iter()
+            .try_for_each(|codec| {
+                let stored = codec.encode_bytes(path, &binary)?;
+                anyhow::ensure!(codec.decode_bytes(path, &stored)? == binary);
+                Ok(())
+            })
+    }
+
+    #[test]
+    fn encrypted_assets_get_an_extra_extension_on_disk() -> anyhow::Result<()> {
+        assert_eq!(Codec::Plain.asset_disk_name("a.png"), "a.png");
+        assert_eq!(encrypted_codec()?.asset_disk_name("a.png"), "a.png.enc");
         Ok(())
     }
 

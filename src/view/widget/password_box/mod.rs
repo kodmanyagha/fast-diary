@@ -14,6 +14,9 @@ const TEXT_PADDING_Y: f64 = 6.0;
 const CARET_WIDTH: f64 = 1.0;
 const CARET_BLINK_INTERVAL: Duration = Duration::from_millis(500);
 
+/// Makes the password boxes built by [`focused_password_box`] take the keyboard focus.
+pub const FOCUS_PASSWORD_BOX: Selector<()> = Selector::new("password_box.focus");
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum CaretMove {
     Left,
@@ -40,6 +43,14 @@ pub fn password_box(on_enter: Selector<()>) -> impl Widget<String> {
     PasswordBox::new(on_enter).expand_width()
 }
 
+/// Builds a [`password_box`] that takes the keyboard focus as soon as it is shown and whenever
+/// [`FOCUS_PASSWORD_BOX`] is submitted, so the password can be typed right away.
+pub fn focused_password_box(on_enter: Selector<()>) -> impl Widget<String> {
+    PasswordBox::new(on_enter)
+        .taking_focus_when_shown()
+        .expand_width()
+}
+
 struct PasswordBox {
     on_enter: Selector<()>,
     mask: TextLayout<String>,
@@ -47,6 +58,7 @@ struct PasswordBox {
     is_caret_shown: bool,
     blink_timer: TimerToken,
     scroll_offset: f64,
+    takes_focus_when_shown: bool,
 }
 
 impl PasswordBox {
@@ -59,7 +71,15 @@ impl PasswordBox {
             is_caret_shown: true,
             blink_timer: TimerToken::INVALID,
             scroll_offset: 0.0,
+            takes_focus_when_shown: false,
         }
+    }
+
+    /// Makes the input take the keyboard focus when it is shown and when
+    /// [`FOCUS_PASSWORD_BOX`] arrives.
+    fn taking_focus_when_shown(mut self) -> Self {
+        self.takes_focus_when_shown = true;
+        self
     }
 
     /// Shows the caret and makes it blink again from now on, driven by `blink_timer`.
@@ -113,6 +133,9 @@ impl PasswordBox {
 impl Widget<String> for PasswordBox {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, password: &mut String, _env: &Env) {
         match event {
+            Event::Command(cmd) if cmd.is(FOCUS_PASSWORD_BOX) && self.takes_focus_when_shown => {
+                ctx.request_focus();
+            }
             Event::MouseDown(mouse) => {
                 ctx.request_focus();
                 self.caret = self.caret_for_point(mouse.pos);
@@ -143,6 +166,9 @@ impl Widget<String> for PasswordBox {
             LifeCycle::WidgetAdded => {
                 self.caret = password.chars().count();
                 self.mask.set_text(mask_for(password));
+                if self.takes_focus_when_shown {
+                    ctx.submit_command(FOCUS_PASSWORD_BOX.to(ctx.widget_id()));
+                }
             }
             LifeCycle::BuildFocusChain => ctx.register_for_focus(),
             LifeCycle::FocusChanged(true) => {

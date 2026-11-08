@@ -1,4 +1,6 @@
+pub mod file_drop;
 pub mod folder_command_error;
+pub mod image_insert;
 pub mod main_menu;
 pub mod main_window;
 pub mod main_window_controller;

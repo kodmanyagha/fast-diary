@@ -17,6 +17,8 @@ druid = { version = "=0.8.3", features = [
   "png",
   "jpeg",
   "webp",
+  "gif",
+  "bmp",
   "usvg",
 ] }
 
@@ -68,6 +70,26 @@ chacha20poly1305 = "=0.11.0"
 base64 = "=0.23.1"
 getrandom = "=0.4.3"
 zeroize = { version = "=1.9.1", features = ["derive"] }
+image = { version = "=0.24.9", default-features = false, features = [
+  "png",
+  "jpeg",
+  "webp",
+  "gif",
+  "bmp",
+  "tiff",
+] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "=0.16.2"
+
+[target.'cfg(windows)'.dependencies]
+druid = { version = "=0.8.3", features = ["raw-win-handle"] }
+raw-window-handle = "=0.5.2"
+windows-sys = { version = "=0.61.2", features = [
+  "Win32_Foundation",
+  "Win32_UI_Shell",
+  "Win32_UI_WindowsAndMessaging",
+] }
 
 [dev-dependencies]
 tempfile = "=3.27.0"

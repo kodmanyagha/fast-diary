@@ -2,6 +2,7 @@ use druid::{
     commands, AppDelegate, DelegateCtx, Env, Monitor, Point, Screen, WindowHandle, WindowId,
 };
 
+use super::file_drop::accept_dropped_files;
 use crate::{config::window_settings::WindowGeometry, modal::app_state::AppState};
 
 /// Looks after the main window: it moves the window to a fallback position when the remembered
@@ -49,6 +50,7 @@ impl AppDelegate<AppState> for MainWindowDelegate {
         if self.main_window.is_none() {
             self.main_window = Some(id);
             self.keep_on_a_monitor(&handle);
+            accept_dropped_files(&handle);
         }
     }
 

@@ -71,7 +71,10 @@ menu-edit-redo = Redo
 menu-edit-cut = Cut
 menu-edit-copy = Copy
 menu-edit-paste = Paste
+menu-edit-paste-plain = Paste as Plain Text
 menu-edit-select-all = Select All
+menu-edit-delete-line = Delete Line
+menu-edit-insert-image = Insert Image...
 menu-view = View
 menu-view-list = Diary List
 menu-view-calendar = Calendar
@@ -117,11 +120,15 @@ about-copy = Copy
 dialog-folder-title = Select a folder
 dialog-folder-source = Source
 dialog-folder-select = Select
+dialog-image-title = Select an image
+dialog-image-select = Insert
 
 password-digitsOnly = Digits-only passwords are easy to guess.
 password-shorterThanRecommended = Short password: { $recommended } or more characters are recommended.
 
 status-passwordChanged = Password changed.
+status-filesSkipped = Skipped files that are not images: { $count }
+status-pasteUnsupported = The content on the clipboard cannot be added to a diary.
 
 error-noFolderSelected = Please select a folder.
 error-passwordTooShort = Password must be at least { $minimum } characters long.
@@ -132,4 +139,8 @@ error-keyFileDamaged = The `.encrypted` file of this folder is damaged or unsupp
 error-diaryCorrupted = The encrypted diary is damaged or was not encrypted with the key of this folder.
 error-diariesNotConverted = The folder is encrypted now, but its existing diaries could not be converted.
 error-someDiariesNotConverted = The folder is encrypted now, but { $failed } existing diaries could not be converted. They stay as plain files until you unlock the folder again.
+error-imageNotSupported = This file is not an image that can be shown. Supported formats: PNG, JPEG, WebP, GIF and BMP.
+error-noDiaryOpened = Please open a diary first.
+error-imageTooLarge = The image is too large. Images up to { $megabytes } MB can be added.
+error-clipboardImageUnreadable = The image on the clipboard could not be read.
 error-unexpected = An unexpected error occurred: { $details }

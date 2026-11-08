@@ -1,9 +1,9 @@
 use druid::{
     widget::{
-        Button, CrossAxisAlignment, Either, FillStrat, Flex, Image, Label, LineBreaking, Scroll,
-        SizedBox, Split, ViewSwitcher, ZStack,
+        Button, Controller, CrossAxisAlignment, Either, FillStrat, Flex, Image, Label,
+        LineBreaking, Scroll, SizedBox, Split, ViewSwitcher, ZStack,
     },
-    Color, FileDialogOptions, Widget, WidgetExt,
+    Color, Env, FileDialogOptions, UpdateCtx, Widget, WidgetExt,
 };
 use druid_widget_nursery::ListSelect;
 
@@ -22,7 +22,7 @@ use crate::{
         get_image::diary_icon,
         localization::{password_weakness_text, text, translate},
     },
-    view::widget::password_box::password_box,
+    view::widget::password_box::{focused_password_box, password_box, FOCUS_PASSWORD_BOX},
 };
 
 const PAGE_CONTENT_WIDTH: f64 = MIN_WINDOW_SIZE.width;
@@ -36,6 +36,26 @@ const ERROR_COLOR: Color = Color::rgb8(200, 60, 60);
 
 fn is_plain_folder_selected(data: &AppState) -> bool {
     data.diary_base_path.is_some() && data.folder_protection == FolderProtection::Plain
+}
+
+/// Gives the keyboard focus back to the password box whenever another folder is selected, so
+/// that its password can be typed and submitted with Enter right away.
+struct FocusPasswordOnFolderChange;
+
+impl<W: Widget<AppState>> Controller<AppState, W> for FocusPasswordOnFolderChange {
+    fn update(
+        &mut self,
+        child: &mut W,
+        ctx: &mut UpdateCtx,
+        old_data: &AppState,
+        data: &AppState,
+        env: &Env,
+    ) {
+        if old_data.diary_base_path != data.diary_base_path && data.diary_base_path.is_some() {
+            ctx.submit_command(FOCUS_PASSWORD_BOX);
+        }
+        child.update(ctx, old_data, data, env)
+    }
 }
 
 /// Builds the part of the page that asks for the password of the selected folder and, for
@@ -87,7 +107,11 @@ fn build_password_section() -> impl Widget<AppState> {
         .with_default_spacer()
         .with_child(Label::new(text("page-login-enterPassword")))
         .with_default_spacer()
-        .with_child(password_box(druid_selector::FOLDER_OPEN).lens(AppState::password))
+        .with_child(
+            focused_password_box(druid_selector::FOLDER_OPEN)
+                .lens(AppState::password)
+                .controller(FocusPasswordOnFolderChange),
+        )
         .with_default_spacer()
         .with_child(Either::new(
             |data: &AppState, _env| is_plain_folder_selected(data),

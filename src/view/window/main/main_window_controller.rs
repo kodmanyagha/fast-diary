@@ -1,4 +1,7 @@
-use std::time::{Duration, Instant};
+use std::{
+    path::{Path, PathBuf},
+    time::{Duration, Instant},
+};
 
 use anyhow::{anyhow, Context};
 use chrono::{Local, NaiveDate, Timelike};
@@ -8,6 +11,7 @@ use druid::{
 };
 
 use crate::{
+    clipboard::paste_content::PasteContent,
     config::settings::Settings,
     consts::druid_selector,
     modal::{
@@ -18,11 +22,16 @@ use crate::{
             diary_list_item::DiaryListItem,
         },
     },
-    storage::diary_store::DiaryStore,
-    utils::{consts::DEFAULT_DIARY_NAME, diary::summarize, localization::translate},
+    storage::{asset_name::image_extension, diary_store::DiaryStore},
+    utils::{
+        consts::DEFAULT_DIARY_NAME,
+        diary::summarize,
+        localization::{translate, translate_with},
+    },
     view::window::about::about_window::build_about_window,
 };
 
+use super::image_insert::{insert_image, insert_image_data, insert_images, InsertedImage};
 use super::main_window_controller_utils::{
     change_folder_password, encrypt_selected_folder, forget_recent_folders, load_diary_items,
     lock_folder, open_selected_folder, refresh_folder_protection,
@@ -351,6 +360,76 @@ impl MainWindowController {
         }
     }
 
+    /// Copies the image at `source` into the assets of the opened diary and puts its markdown
+    /// into the diary, telling the user when that fails.
+    fn handle_image_insert(ctx: &mut EventCtx, app_state: &mut AppState, source: &Path) {
+        let outcome = insert_image(app_state, source);
+        Self::deliver_inserted_image(ctx, app_state, outcome, None);
+    }
+
+    /// Hands the markdown of inserted images to the editor when it is the one to place it, and
+    /// shows `notice` or the failure to the user.
+    fn deliver_inserted_image(
+        ctx: &mut EventCtx,
+        app_state: &mut AppState,
+        outcome: anyhow::Result<InsertedImage>,
+        notice: Option<String>,
+    ) {
+        match outcome {
+            Ok(inserted) => {
+                if let InsertedImage::ForEditor(markdown) = inserted {
+                    ctx.submit_command(druid_selector::EDITOR_INSERT_BLOCK.with(markdown));
+                }
+                app_state.status_message = notice.unwrap_or_default();
+            }
+            Err(err) => {
+                tracing::error!("Could not insert image: {err:#}");
+                app_state.status_message = error_message(app_state.language, &err);
+            }
+        }
+    }
+
+    /// Inserts the images among the pasted or dropped `files`, telling the user how many of
+    /// them were skipped for not being images.
+    fn handle_pasted_files(ctx: &mut EventCtx, app_state: &mut AppState, files: &[PathBuf]) {
+        let (images, others): (Vec<&PathBuf>, Vec<&PathBuf>) = files
+            .iter()
+            .partition(|path| image_extension(path).is_some());
+        let notice = (!others.is_empty()).then(|| {
+            translate_with(
+                app_state.language,
+                "status-filesSkipped",
+                &[("count", others.len().to_string())],
+            )
+        });
+
+        if images.is_empty() {
+            app_state.status_message = notice.unwrap_or_default();
+        } else {
+            let outcome = insert_images(app_state, &images);
+            Self::deliver_inserted_image(ctx, app_state, outcome, notice);
+        }
+    }
+
+    /// Puts what was pasted or dropped into the opened diary: images of files, image data
+    /// saved as a screenshot, or a notice when the content cannot be added.
+    fn handle_paste_content(ctx: &mut EventCtx, app_state: &mut AppState, content: &PasteContent) {
+        match content {
+            PasteContent::Files(files) => Self::handle_pasted_files(ctx, app_state, files),
+            PasteContent::Image(image) => {
+                let outcome = image
+                    .to_png()
+                    .map_err(anyhow::Error::from)
+                    .and_then(|png| insert_image_data(app_state, &png));
+                Self::deliver_inserted_image(ctx, app_state, outcome, None);
+            }
+            PasteContent::Unsupported => {
+                app_state.status_message = translate(app_state.language, "status-pasteUnsupported");
+            }
+            PasteContent::Text | PasteContent::Nothing => {}
+        }
+    }
+
     /// Shows the outcome of a folder command to the user, in the language of the app. A
     /// success shows the text of `success_key`, or nothing when there is no such key.
     fn report_outcome(
@@ -463,13 +542,28 @@ impl<W: Widget<AppState>> Controller<AppState, W> for MainWindowController {
                             self.set_diary_base_path(app_state, path.to_string());
                         }
                     }
+                    OpenFilePurpose::ImageInsert => {
+                        let source = cmd_data.path.clone();
+                        Self::handle_image_insert(ctx, app_state, &source);
+                        app_state.open_file_purpose = OpenFilePurpose::DiaryPath;
+                    }
                 }
+                pass_event_to_child = false;
             } else if cmd.is(druid_selector::DIARY_LOAD_FOLDER) {
                 self.load_folder(ctx, app_state);
             } else if cmd.is(druid_selector::CREATE_NEW_DIARY) {
                 if let Err(err) = self.handle_diary_create(ctx, app_state) {
                     tracing::error!("File create error: {err:#}");
                 }
+                pass_event_to_child = false;
+            } else if cmd.is(druid_selector::FILES_DROPPED) {
+                child.event(ctx, event, app_state, env);
+                let dropped = cmd.get_unchecked(druid_selector::FILES_DROPPED);
+                Self::handle_pasted_files(ctx, app_state, &dropped.paths);
+                pass_event_to_child = false;
+            } else if cmd.is(druid_selector::PASTE_CONTENT) {
+                let content = cmd.get_unchecked(druid_selector::PASTE_CONTENT);
+                Self::handle_paste_content(ctx, app_state, content);
                 pass_event_to_child = false;
             } else if cmd.is(druid_selector::EDITOR_CURSOR_LINE_CHANGED) {
                 app_state.editor_cursor_line =

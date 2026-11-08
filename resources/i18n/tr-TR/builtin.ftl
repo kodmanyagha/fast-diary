@@ -54,7 +54,10 @@ menu-edit-redo = Yinele
 menu-edit-cut = Kes
 menu-edit-copy = Kopyala
 menu-edit-paste = Yapıştır
+menu-edit-paste-plain = Düz Metin Olarak Yapıştır
 menu-edit-select-all = Tümünü Seç
+menu-edit-delete-line = Satırı Sil
+menu-edit-insert-image = Resim Ekle...
 menu-view = Görünüm
 menu-view-list = Günlük Listesi
 menu-view-calendar = Takvim
@@ -115,11 +118,15 @@ about-copy = Kopyala
 dialog-folder-title = Bir klasör seçin
 dialog-folder-source = Kaynak
 dialog-folder-select = Seç
+dialog-image-title = Bir resim seçin
+dialog-image-select = Ekle
 
 password-digitsOnly = Sadece rakamlardan oluşan şifreler kolay tahmin edilir.
 password-shorterThanRecommended = Kısa şifre: { $recommended } veya daha fazla karakter önerilir.
 
 status-passwordChanged = Şifre değiştirildi.
+status-filesSkipped = { $count } dosya resim olmadığı için atlandı.
+status-pasteUnsupported = Panodaki içerik günlüğe eklenemiyor.
 
 error-noFolderSelected = Lütfen bir klasör seçin.
 error-passwordTooShort = Şifre en az { $minimum } karakter olmalı.
@@ -130,4 +137,8 @@ error-keyFileDamaged = Bu klasörün `.encrypted` dosyası bozuk ya da desteklen
 error-diaryCorrupted = Şifreli günlük bozuk ya da bu klasörün anahtarıyla şifrelenmemiş.
 error-diariesNotConverted = Klasör artık şifreli, ancak içindeki günlükler dönüştürülemedi.
 error-someDiariesNotConverted = Klasör artık şifreli, ancak { $failed } günlük dönüştürülemedi. Klasörün kilidini tekrar açana kadar düz dosya olarak kalırlar.
+error-imageNotSupported = Bu dosya gösterilebilen bir resim değil. Desteklenen biçimler: PNG, JPEG, WebP, GIF ve BMP.
+error-noDiaryOpened = Lütfen önce bir günlük açın.
+error-imageTooLarge = Resim çok büyük. En fazla { $megabytes } MB boyutundaki resimler eklenebilir.
+error-clipboardImageUnreadable = Panodaki resim okunamadı.
 error-unexpected = Beklenmeyen bir hata oluştu: { $details }

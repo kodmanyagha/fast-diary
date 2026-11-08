@@ -1,7 +1,10 @@
 use chrono::NaiveDate;
 use druid::Selector;
 
-use crate::modal::state::diary_list_item::DiaryListItem;
+use crate::{
+    clipboard::paste_content::PasteContent, modal::state::diary_list_item::DiaryListItem,
+    view::window::main::file_drop::DroppedFiles,
+};
 
 pub const DIARY_ADD_ITEM: Selector<DiaryListItem> = Selector::new("diary.add_item");
 pub const DIARY_SET_CURRENT: Selector<DiaryListItem> = Selector::new("diary.set_current");
@@ -18,3 +21,8 @@ pub const FOLDER_LOCK: Selector<()> = Selector::new("folder.lock");
 pub const FOLDER_CHANGE_PASSWORD: Selector<()> = Selector::new("folder.change_password");
 pub const CONFIRMATION_ACCEPT: Selector<()> = Selector::new("confirmation.accept");
 pub const EDITOR_CURSOR_LINE_CHANGED: Selector<usize> = Selector::new("editor.cursor_line_changed");
+pub const EDITOR_INSERT_BLOCK: Selector<String> = Selector::new("editor.insert_block");
+pub const EDITOR_PASTE_PLAIN: Selector<()> = Selector::new("editor.paste_plain");
+pub const PASTE_CONTENT: Selector<PasteContent> = Selector::new("paste.content");
+pub const FILES_DROPPED: Selector<DroppedFiles> = Selector::new("files.dropped");
+pub const EDITOR_DELETE_LINE: Selector<()> = Selector::new("editor.delete_line");

@@ -11,13 +11,17 @@ use crate::modal::app_state::AppState;
 use crate::modal::state::editor_mode::EditorMode;
 use crate::utils::localization::{month_name, text};
 use crate::view::widget::diary_editor::diary_editor;
+use crate::view::widget::icon_button::icon_button;
 use crate::view::widget::markdown_preview::markdown_preview;
 use crate::view::widget::mode_selector::editor_mode_button;
 use crate::view::widget::persistent_split::PersistentSplit;
+use crate::view::window::main::image_insert::image_insert_request;
+use druid_material_icons::normal::image::ADD_PHOTO_ALTERNATE;
 
 const EDITOR_MIN_WIDTH: f64 = 120.0;
 const PREVIEW_MIN_WIDTH: f64 = 120.0;
 const TITLE_SPACING: f64 = 6.0;
+const TITLE_BUTTON_SPACING: f64 = 4.0;
 
 fn build_text_editor() -> impl Widget<AppState> {
     diary_editor().lens(AppState::txt_diary)
@@ -47,10 +51,20 @@ fn build_title() -> impl Widget<AppState> {
     .with_font(theme::UI_FONT_BOLD)
 }
 
+fn build_btn_insert_image() -> impl Widget<AppState> {
+    icon_button(
+        ADD_PHOTO_ALTERNATE,
+        "menu-edit-insert-image",
+        |ctx, app_state, _env| ctx.submit_command(image_insert_request(app_state)),
+    )
+}
+
 fn build_title_row() -> impl Widget<AppState> {
     Flex::row()
         .with_child(build_title())
         .with_flex_spacer(1.0)
+        .with_child(build_btn_insert_image())
+        .with_spacer(TITLE_BUTTON_SPACING)
         .with_child(editor_mode_button().lens(AppState::editor_mode))
         .expand_width()
 }

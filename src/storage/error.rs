@@ -19,6 +19,10 @@ pub enum StorageError {
     },
     #[error("{0:?} is not a plain file name.")]
     InvalidFileName(String),
+    #[error("{0:?} is not an image that can be shown.")]
+    UnsupportedImage(PathBuf),
+    #[error("{path:?} is larger than the {limit} bytes that an image may have.")]
+    ImageTooLarge { path: PathBuf, limit: u64 },
     #[error("{path:?} does not contain valid UTF-8 text.")]
     InvalidUtf8 { path: PathBuf },
     #[error("Could not process {path:?}: {source}")]

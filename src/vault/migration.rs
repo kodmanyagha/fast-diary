@@ -1,6 +1,10 @@
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use crate::storage::{
+    asset_name::ASSETS_DIRECTORY,
     atomic_write::write_atomically,
     history::{history_directory, snapshot_file_paths},
 };
@@ -20,20 +24,28 @@ pub struct MigrationReport {
     pub failed: usize,
 }
 
-/// Encrypts every plain `.md` diary of `folder` (and its history) into `<name>.md.enc`.
+/// Encrypts every plain `.md` diary of `folder` (and its history) into `<name>.md.enc`, and
+/// every plain asset under `assets/<diary>/` into `<name>.enc`.
 ///
 /// Each encrypted copy is read back and verified before its plain original is deleted, so an
-/// interrupted run loses nothing and can simply be repeated. Failures of single diaries are
-/// logged and counted, they do not stop the remaining diaries from being migrated.
+/// interrupted run loses nothing and can simply be repeated. Failures of single files are
+/// logged and counted, they do not stop the remaining files from being migrated.
 pub fn encrypt_plain_diaries(folder: &Path, key: &FolderKey) -> VaultResult<MigrationReport> {
-    let outcomes = plain_diary_file_names(folder)?
-        .iter()
+    let diary_outcomes = plain_diary_file_names(folder)?
+        .into_iter()
         .map(|file_name| {
-            migrate_diary(folder, key, file_name).inspect_err(|err| {
+            migrate_diary(folder, key, &file_name).inspect_err(|err| {
                 tracing::warn!("Could not encrypt diary {file_name}: {err}");
             })
-        })
-        .collect::<Vec<_>>();
+        });
+    let asset_outcomes = plain_asset_files(folder)
+        .into_iter()
+        .map(|(directory, file_name)| {
+            migrate_asset(&directory, key, &file_name).inspect_err(|err| {
+                tracing::warn!("Could not encrypt asset {directory:?}/{file_name}: {err}");
+            })
+        });
+    let outcomes = diary_outcomes.chain(asset_outcomes).collect::<Vec<_>>();
 
     let migrated = outcomes.iter().filter(|outcome| outcome.is_ok()).count();
     Ok(MigrationReport {
@@ -44,22 +56,69 @@ pub fn encrypt_plain_diaries(folder: &Path, key: &FolderKey) -> VaultResult<Migr
 
 /// Lists the visible plain `.md` files that sit directly inside `folder`.
 fn plain_diary_file_names(folder: &Path) -> VaultResult<Vec<String>> {
-    Ok(fs::read_dir(folder)
-        .map_err(VaultError::io_at(folder))?
+    Ok(visible_file_names(folder)?
+        .into_iter()
+        .filter(|file_name| file_name.ends_with(PLAIN_DIARY_EXTENSION))
+        .collect())
+}
+
+/// Lists the names of the visible files that sit directly inside `directory`.
+fn visible_file_names(directory: &Path) -> VaultResult<Vec<String>> {
+    Ok(fs::read_dir(directory)
+        .map_err(VaultError::io_at(directory))?
         .filter_map(Result::ok)
         .filter(|entry| entry.file_type().is_ok_and(|file_type| file_type.is_file()))
         .filter_map(|entry| entry.file_name().into_string().ok())
-        .filter(|file_name| {
-            file_name.ends_with(PLAIN_DIARY_EXTENSION) && !file_name.starts_with('.')
-        })
+        .filter(|file_name| !file_name.starts_with('.'))
         .collect())
+}
+
+/// Lists the visible asset files under `assets/<diary>/` of `folder` that are not encrypted
+/// yet, each with the directory it is in. A folder without assets has none.
+fn plain_asset_files(folder: &Path) -> Vec<(PathBuf, String)> {
+    fs::read_dir(folder.join(ASSETS_DIRECTORY))
+        .into_iter()
+        .flatten()
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_type().is_ok_and(|file_type| file_type.is_dir()))
+        .map(|entry| entry.path())
+        .flat_map(|directory| {
+            visible_file_names(&directory)
+                .inspect_err(|err| tracing::warn!("Could not list assets: {err}"))
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|file_name| !file_name.ends_with(ENCRYPTED_SUFFIX))
+                .map(move |file_name| (directory.clone(), file_name))
+        })
+        .collect()
 }
 
 /// Encrypts one diary with its history, then deletes the plain files.
 fn migrate_diary(folder: &Path, key: &FolderKey, plain_name: &str) -> VaultResult<()> {
+    let (plain_path, encrypted_name) = write_encrypted_copy(folder, key, plain_name)?;
+
+    migrate_history(folder, key, plain_name, &encrypted_name)?;
+    fs::remove_file(&plain_path).map_err(VaultError::io_at(&plain_path))
+}
+
+/// Encrypts one asset, then deletes the plain file.
+fn migrate_asset(directory: &Path, key: &FolderKey, plain_name: &str) -> VaultResult<()> {
+    let (plain_path, _) = write_encrypted_copy(directory, key, plain_name)?;
+
+    fs::remove_file(&plain_path).map_err(VaultError::io_at(&plain_path))
+}
+
+/// Writes the verified encrypted copy `<plain_name>.enc` of the file `plain_name` in
+/// `directory`, unless an identical copy is already there. Returns the path of the plain file
+/// and the name of the encrypted one.
+fn write_encrypted_copy(
+    directory: &Path,
+    key: &FolderKey,
+    plain_name: &str,
+) -> VaultResult<(PathBuf, String)> {
     let encrypted_name = format!("{plain_name}{ENCRYPTED_SUFFIX}");
-    let plain_path = folder.join(plain_name);
-    let encrypted_path = folder.join(&encrypted_name);
+    let plain_path = directory.join(plain_name);
+    let encrypted_path = directory.join(&encrypted_name);
     let plaintext = fs::read(&plain_path).map_err(VaultError::io_at(&plain_path))?;
 
     let already_migrated = fs::read(&encrypted_path)
@@ -74,8 +133,7 @@ fn migrate_diary(folder: &Path, key: &FolderKey, plain_name: &str) -> VaultResul
         write_verified(key, &encrypted_name, &encrypted_path, &plaintext)?;
     }
 
-    migrate_history(folder, key, plain_name, &encrypted_name)?;
-    fs::remove_file(&plain_path).map_err(VaultError::io_at(&plain_path))
+    Ok((plain_path, encrypted_name))
 }
 
 /// Re-encrypts every snapshot of `plain_name` for `encrypted_name`, then removes the plain history.
@@ -175,6 +233,53 @@ mod tests {
         );
         assert!(dir.path().join("notes.txt").exists());
         assert!(dir.path().join(".hidden.md").exists());
+        Ok(())
+    }
+
+    #[test]
+    fn encrypts_plain_assets_and_removes_originals() -> anyhow::Result<()> {
+        let dir = tempfile::tempdir()?;
+        let key = FolderKey::generate()?;
+        let assets = dir.path().join(ASSETS_DIRECTORY).join("240101");
+        fs::create_dir_all(&assets)?;
+        fs::write(dir.path().join("240101.md"), "![](assets/240101/a.png)")?;
+        fs::write(assets.join("a.png"), b"picture")?;
+
+        let report = encrypt_plain_diaries(dir.path(), &key)?;
+
+        assert_eq!(
+            report,
+            MigrationReport {
+                migrated: 2,
+                failed: 0
+            }
+        );
+        assert!(!assets.join("a.png").exists());
+        assert_eq!(read_decrypted(&assets, &key, "a.png.enc")?, b"picture");
+        Ok(())
+    }
+
+    #[test]
+    fn already_encrypted_and_hidden_assets_are_left_alone() -> anyhow::Result<()> {
+        let dir = tempfile::tempdir()?;
+        let key = FolderKey::generate()?;
+        let assets = dir.path().join(ASSETS_DIRECTORY).join("240101");
+        fs::create_dir_all(&assets)?;
+        let encrypted = encrypt_file(&key, "a.png.enc", b"picture")?;
+        fs::write(assets.join("a.png.enc"), &encrypted)?;
+        fs::write(assets.join(".a.png.tmp"), b"staged")?;
+
+        let report = encrypt_plain_diaries(dir.path(), &key)?;
+
+        assert_eq!(
+            report,
+            MigrationReport {
+                migrated: 0,
+                failed: 0
+            }
+        );
+        assert_eq!(fs::read(assets.join("a.png.enc"))?, encrypted);
+        assert!(assets.join(".a.png.tmp").exists());
         Ok(())
     }
 

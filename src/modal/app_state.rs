@@ -11,7 +11,9 @@ use super::state::{
 };
 use crate::{
     config::{layout_settings::LayoutSettings, window_settings::WindowSettings},
-    storage::{codec::Codec, diary_store::DiaryStore, history::HistoryPolicy},
+    storage::{
+        asset_store::AssetStore, codec::Codec, diary_store::DiaryStore, history::HistoryPolicy,
+    },
     vault::folder_key::FolderKey,
 };
 
@@ -55,6 +57,7 @@ impl Lens<AppState, Vector<(DiaryListItem, bool)>> for DiariesWithSelectionLens 
 #[derive(Clone, PartialEq, Data)]
 pub enum OpenFilePurpose {
     DiaryPath,
+    ImageInsert,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
@@ -153,18 +156,47 @@ impl AppState {
         self.diary_base_path.clone()
     }
 
-    /// Returns the store of the selected diary folder. Returns `None` when no folder is
+    /// Returns the codec of the selected diary folder. Returns `None` when no folder is
     /// selected or when the folder is encrypted but not unlocked, so that a locked folder can
     /// never be read or written as plain text by accident.
+    fn folder_codec(&self) -> Option<Codec> {
+        self.diary_base_path.as_ref()?;
+        match (self.folder_protection, &self.folder_key) {
+            (FolderProtection::Plain, _) => Some(Codec::Plain),
+            (FolderProtection::Encrypted, Some(folder_key)) => {
+                Some(Codec::Encrypted(folder_key.clone()))
+            }
+            (FolderProtection::Encrypted, None) => None,
+        }
+    }
+
+    /// Returns the store of the selected diary folder, under the conditions of
+    /// [`Self::folder_codec`].
     pub fn diary_store(&self) -> Option<DiaryStore> {
         let base_path = self.diary_base_path.as_ref()?;
-        let codec = match (self.folder_protection, &self.folder_key) {
-            (FolderProtection::Plain, _) => Codec::Plain,
-            (FolderProtection::Encrypted, Some(folder_key)) => Codec::Encrypted(folder_key.clone()),
-            (FolderProtection::Encrypted, None) => return None,
-        };
 
-        Some(DiaryStore::new(base_path, HistoryPolicy::default(), codec))
+        Some(DiaryStore::new(
+            base_path,
+            HistoryPolicy::default(),
+            self.folder_codec()?,
+        ))
+    }
+
+    /// Returns the store of the files that the diaries of the selected folder refer to, under
+    /// the conditions of [`Self::folder_codec`].
+    pub fn asset_store(&self) -> Option<AssetStore> {
+        let base_path = self.diary_base_path.as_ref()?;
+
+        Some(AssetStore::new(base_path, self.folder_codec()?))
+    }
+
+    /// Selects the folder that was opened last, when it still exists on the disk.
+    pub fn select_last_recent_folder(&mut self) {
+        self.diary_base_path = self
+            .recent_folders
+            .front()
+            .filter(|folder_path| std::path::Path::new(folder_path).is_dir())
+            .cloned();
     }
 
     /// Returns the selected folder when it is one of the recent folders.
@@ -190,6 +222,52 @@ mod tests {
         app_state.diary_base_path = selected.map(str::to_string);
         app_state.recent_folders = recent_folders.iter().map(|path| path.to_string()).collect();
         app_state
+    }
+
+    #[test]
+    fn the_last_opened_folder_is_selected_when_it_exists() -> anyhow::Result<()> {
+        let last = tempfile::tempdir()?;
+        let older = tempfile::tempdir()?;
+        let last_path = last.path().to_string_lossy().into_owned();
+        let older_path = older.path().to_string_lossy().into_owned();
+        let mut app_state = state_with_recent_folders(None, &[&last_path, &older_path]);
+
+        app_state.select_last_recent_folder();
+
+        assert_eq!(app_state.diary_base_path, Some(last_path));
+        Ok(())
+    }
+
+    #[test]
+    fn a_last_folder_that_is_gone_or_missing_selects_nothing() -> anyhow::Result<()> {
+        let parent = tempfile::tempdir()?;
+        let gone = parent.path().join("gone").to_string_lossy().into_owned();
+        let mut app_state = state_with_recent_folders(None, &[&gone]);
+
+        app_state.select_last_recent_folder();
+        assert_eq!(app_state.diary_base_path, None);
+
+        let mut empty = state_with_recent_folders(None, &[]);
+        empty.select_last_recent_folder();
+        assert_eq!(empty.diary_base_path, None);
+        Ok(())
+    }
+
+    #[test]
+    fn a_locked_encrypted_folder_has_no_stores() {
+        let mut app_state = state_with_recent_folders(Some("/diary"), &[]);
+        app_state.folder_protection = FolderProtection::Encrypted;
+
+        assert!(app_state.diary_store().is_none());
+        assert!(app_state.asset_store().is_none());
+    }
+
+    #[test]
+    fn a_plain_folder_has_both_stores_and_no_folder_has_none() {
+        assert!(state_with_recent_folders(Some("/diary"), &[])
+            .asset_store()
+            .is_some());
+        assert!(state_with_recent_folders(None, &[]).asset_store().is_none());
     }
 
     #[test]

@@ -13,6 +13,8 @@ use crate::{
     view::page::main::main_page::folder_dialog_options,
 };
 
+use super::image_insert::image_insert_request;
+
 fn is_main_page(app_state: &AppState) -> bool {
     app_state.page == AppPages::Main
 }
@@ -101,8 +103,25 @@ fn build_edit_menu() -> Menu<AppState> {
         .entry(edit_item("menu-edit-cut", commands::CUT))
         .entry(edit_item("menu-edit-copy", commands::COPY))
         .entry(edit_item("menu-edit-paste", commands::PASTE))
+        .entry(
+            edit_item("menu-edit-paste-plain", druid_selector::EDITOR_PASTE_PLAIN)
+                .hotkey(SysMods::CmdShift, "V"),
+        )
         .separator()
         .entry(edit_item("menu-edit-select-all", commands::SELECT_ALL))
+        .entry(
+            edit_item("menu-edit-delete-line", druid_selector::EDITOR_DELETE_LINE)
+                .hotkey(SysMods::Cmd, "d"),
+        )
+        .separator()
+        .entry(
+            MenuItem::new(menu_title("menu-edit-insert-image"))
+                .on_activate(|ctx, app_state, _env| {
+                    ctx.submit_command(image_insert_request(app_state));
+                })
+                .hotkey(SysMods::CmdShift, "I")
+                .enabled_if(|app_state, _env| has_opened_diary(app_state)),
+        )
 }
 
 fn diary_view_mode_item(key: &'static str, mode: DiaryViewMode) -> MenuItem<AppState> {

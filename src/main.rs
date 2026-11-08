@@ -61,6 +61,7 @@ async fn main() -> anyhow::Result<()> {
 
     let mut app_data = AppState::new();
     app_data.recent_folders = settings.recent_folders.into();
+    app_data.select_last_recent_folder();
     app_data.diary_view_mode = settings.diary_view_mode;
     app_data.editor_mode = settings.editor_mode;
     app_data.language = settings.language;

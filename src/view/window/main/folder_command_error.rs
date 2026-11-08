@@ -7,6 +7,8 @@ use crate::vault::error::VaultError;
 pub enum FolderCommandError {
     #[error("No folder is selected.")]
     NoFolderSelected,
+    #[error("No diary is opened.")]
+    NoDiaryOpened,
     #[error("The folder is encrypted now, but its existing diaries could not be converted.")]
     DiariesNotConverted(#[source] VaultError),
     #[error("The folder is encrypted now, but {failed} existing diaries could not be converted.")]
